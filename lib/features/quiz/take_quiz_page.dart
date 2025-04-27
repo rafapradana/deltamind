@@ -86,9 +86,11 @@ class QuizAttemptState {
 }
 
 /// Provider for quiz attempt
-final quizAttemptProvider = StateNotifierProvider.family<QuizAttemptNotifier, QuizAttemptState, QuizAttemptParams>(
-  (ref, params) => QuizAttemptNotifier(params.quizId, params.questions),
-);
+final quizAttemptProvider = StateNotifierProvider.family<
+  QuizAttemptNotifier,
+  QuizAttemptState,
+  QuizAttemptParams
+>((ref, params) => QuizAttemptNotifier(params.quizId, params.questions));
 
 /// Parameters for quiz attempt
 class QuizAttemptParams {
@@ -101,12 +103,14 @@ class QuizAttemptParams {
 /// Notifier for quiz attempt
 class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
   QuizAttemptNotifier(String quizId, List<Question> questions)
-      : super(QuizAttemptState(
+    : super(
+        QuizAttemptState(
           quizId: quizId,
           questions: questions,
           startTime: DateTime.now(),
-        ));
-        
+        ),
+      );
+
   /// Safe state update method to prevent errors during widget building
   void _safeUpdateState(QuizAttemptState newState) {
     if (mounted) {
@@ -121,32 +125,34 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
   /// Answer current question
   void answerQuestion(String answer) {
     if (!mounted) return;
-    
+
     try {
-    final currentQuestion = state.currentQuestion;
-    final questionId = currentQuestion.id;
-    final isCorrect = answer == currentQuestion.correctAnswer;
-    final timeTaken = DateTime.now().difference(state.startTime).inSeconds;
+      final currentQuestion = state.currentQuestion;
+      final questionId = currentQuestion.id;
+      final isCorrect = answer == currentQuestion.correctAnswer;
+      final timeTaken = DateTime.now().difference(state.startTime).inSeconds;
 
-    // Update user answers, correctness, and time taken
-    final updatedUserAnswers = Map<String, String>.from(state.userAnswers);
-    updatedUserAnswers[questionId] = answer;
+      // Update user answers, correctness, and time taken
+      final updatedUserAnswers = Map<String, String>.from(state.userAnswers);
+      updatedUserAnswers[questionId] = answer;
 
-    final updatedIsCorrect = Map<String, bool>.from(state.isCorrect);
-    updatedIsCorrect[questionId] = isCorrect;
+      final updatedIsCorrect = Map<String, bool>.from(state.isCorrect);
+      updatedIsCorrect[questionId] = isCorrect;
 
-    final updatedTimeTaken = Map<String, int>.from(state.timeTaken);
-    updatedTimeTaken[questionId] = timeTaken;
+      final updatedTimeTaken = Map<String, int>.from(state.timeTaken);
+      updatedTimeTaken[questionId] = timeTaken;
 
-    // Calculate new score
-    final newScore = updatedIsCorrect.values.where((value) => value).length;
+      // Calculate new score
+      final newScore = updatedIsCorrect.values.where((value) => value).length;
 
-      _safeUpdateState(state.copyWith(
-      userAnswers: updatedUserAnswers,
-      isCorrect: updatedIsCorrect,
-      timeTaken: updatedTimeTaken,
-      score: newScore,
-      ));
+      _safeUpdateState(
+        state.copyWith(
+          userAnswers: updatedUserAnswers,
+          isCorrect: updatedIsCorrect,
+          timeTaken: updatedTimeTaken,
+          score: newScore,
+        ),
+      );
     } catch (e) {
       debugPrint('Error answering question: $e');
     }
@@ -155,14 +161,14 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
   /// Move to next question
   void nextQuestion() {
     if (!mounted) return;
-    
+
     try {
-    if (state.currentQuestionIndex < state.questions.length - 1) {
-        _safeUpdateState(state.copyWith(
-        currentQuestionIndex: state.currentQuestionIndex + 1,
-        ));
-    } else {
-      completeQuiz();
+      if (state.currentQuestionIndex < state.questions.length - 1) {
+        _safeUpdateState(
+          state.copyWith(currentQuestionIndex: state.currentQuestionIndex + 1),
+        );
+      } else {
+        completeQuiz();
       }
     } catch (e) {
       debugPrint('Error moving to next question: $e');
@@ -172,12 +178,12 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
   /// Move to previous question
   void previousQuestion() {
     if (!mounted) return;
-    
+
     try {
-    if (state.currentQuestionIndex > 0) {
-        _safeUpdateState(state.copyWith(
-        currentQuestionIndex: state.currentQuestionIndex - 1,
-        ));
+      if (state.currentQuestionIndex > 0) {
+        _safeUpdateState(
+          state.copyWith(currentQuestionIndex: state.currentQuestionIndex - 1),
+        );
       }
     } catch (e) {
       debugPrint('Error moving to previous question: $e');
@@ -187,7 +193,7 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
   /// Complete the quiz
   void completeQuiz() {
     if (!mounted) return;
-    
+
     try {
       _safeUpdateState(state.copyWith(isCompleted: true));
       // Quiz attempt will be saved when navigating to review page
@@ -199,55 +205,172 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
   /// Save quiz attempt to database
   Future<String?> saveQuizAttempt() async {
     if (!mounted) return null;
-    
+
     // Save quiz attempt
     try {
       final userId = SupabaseService.currentUser?.id;
       if (userId == null) {
         throw Exception('User not authenticated');
       }
-      
-      // 1. Create quiz attempt record
-      final quizAttemptData = {
-        'user_id': userId,
+
+      debugPrint(
+        'Saving quiz attempt for user: $userId using staging table approach',
+      );
+
+      // Generate a UUID for this attempt
+      final attemptId = SupabaseService.generateUuid();
+
+      // Create attempt data - explicit ordering to avoid RLS issues
+      final Map<String, dynamic> attemptData = {
+        'id': attemptId,
         'quiz_id': state.quizId,
         'score': state.score,
         'total_questions': state.questions.length,
         'time_taken': state.totalTimeTaken,
         'completed': true,
       };
-      
-      final response = await SupabaseService.client
-          .from('quiz_attempts')
-          .insert(quizAttemptData)
-          .select()
-          .single();
-      
-      final quizAttemptId = response['id'];
-      
-      // 2. Save individual user answers
+
+      // Add user_id last (this has been a common pattern to avoid ambiguity)
+      attemptData['user_id'] = userId;
+
+      // 1. Try staging table approach first
+      try {
+        await SupabaseService.client
+            .from('quiz_attempts_staging')
+            .insert(attemptData);
+
+        debugPrint('Quiz attempt staged with ID: $attemptId');
+
+        // Wait for trigger to process (up to 3 attempts)
+        bool transferred = false;
+        for (int i = 0; i < 3; i++) {
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          transferred = await SupabaseService.checkQuizAttemptExists(attemptId);
+          if (transferred) {
+            debugPrint('Verified quiz attempt transferred to main table');
+            break;
+          }
+        }
+
+        if (!transferred) {
+          throw Exception('Quiz attempt staging transfer failed');
+        }
+      } catch (stagingError) {
+        // 2. If staging fails, try direct insertion with text casting approach
+        debugPrint(
+          'Staging approach failed: $stagingError, trying direct insertion',
+        );
+
+        // On some systems, casting the IDs to text helps avoid ambiguity
+        final textCastQuery = '''
+        INSERT INTO quiz_attempts (id, user_id, quiz_id, score, total_questions, time_taken, completed) 
+        VALUES (
+          '$attemptId'::uuid, 
+          '$userId'::uuid, 
+          '${state.quizId}'::uuid, 
+          ${state.score}, 
+          ${state.questions.length}, 
+          ${state.totalTimeTaken}, 
+          ${true}
+        )
+        ''';
+
+        try {
+          await SupabaseService.client.rpc(
+            'execute_direct_sql',
+            params: {'query': textCastQuery},
+          );
+          debugPrint('Direct SQL insertion successful');
+        } catch (directError) {
+          // Log the error but keep trying the last approach
+          debugPrint('Direct SQL approach also failed: $directError');
+
+          // 3. Last resort approach - try direct insert with separate function
+          try {
+            final fallbackQuery = '''
+            DO \$\$
+            DECLARE
+              v_id uuid := '$attemptId'::uuid;
+              v_user_id uuid := '$userId'::uuid;
+              v_quiz_id uuid := '${state.quizId}'::uuid;
+            BEGIN
+              INSERT INTO quiz_attempts (id, user_id, quiz_id, score, total_questions, time_taken, completed)
+              VALUES (
+                v_id, 
+                v_user_id, 
+                v_quiz_id, 
+                ${state.score}, 
+                ${state.questions.length}, 
+                ${state.totalTimeTaken}, 
+                true
+              );
+            END \$\$;
+            ''';
+
+            await SupabaseService.client.rpc(
+              'execute_direct_sql',
+              params: {'query': fallbackQuery},
+            );
+            debugPrint('Fallback approach successful');
+          } catch (fallbackError) {
+            // 4. Absolutely final attempt with our direct insert function
+            try {
+              await SupabaseService.client.rpc(
+                'insert_quiz_attempt_direct',
+                params: {
+                  'id_value': attemptId,
+                  'user_id_value': userId,
+                  'quiz_id_value': state.quizId,
+                  'score_value': state.score,
+                  'total_questions_value': state.questions.length,
+                  'time_taken_value': state.totalTimeTaken,
+                  'completed_value': true,
+                },
+              );
+              debugPrint('Final direct insert approach successful');
+            } catch (directInsertError) {
+              // If all approaches fail, throw a combined error
+              throw Exception(
+                'All quiz insertion approaches failed: $stagingError, $directError, $fallbackError, $directInsertError',
+              );
+            }
+          }
+        }
+      }
+
+      // Save individual user answers in batches to improve performance
+      final List<Map<String, dynamic>> userAnswersBatch = [];
+
       for (final questionId in state.userAnswers.keys) {
         if (!mounted) return null;
-        
+
         final answer = state.userAnswers[questionId]!;
         final isCorrect = state.isCorrect[questionId] ?? false;
         final timeTaken = state.timeTaken[questionId] ?? 0;
-        
+
+        userAnswersBatch.add({
+          'quiz_attempt_id': attemptId,
+          'question_id': questionId,
+          'user_answer': answer,
+          'is_correct': isCorrect,
+          'time_taken': timeTaken,
+        });
+      }
+
+      // Insert all user answers at once if there are any
+      if (userAnswersBatch.isNotEmpty) {
         await SupabaseService.client
             .from('user_answers')
-            .insert({
-              'quiz_attempt_id': quizAttemptId,
-              'question_id': questionId,
-              'user_answer': answer,
-              'is_correct': isCorrect,
-              'time_taken': timeTaken,
-            });
+            .insert(userAnswersBatch);
+
+        debugPrint('Saved ${userAnswersBatch.length} question answers');
       }
-      
-      debugPrint('Quiz attempt saved successfully');
-      
+
+      debugPrint('Quiz attempt with answers saved successfully');
+
       // Return the quiz attempt ID for navigation
-      return quizAttemptId;
+      return attemptId;
     } catch (e) {
       debugPrint('Error saving quiz attempt: $e');
       return null;
@@ -267,7 +390,7 @@ class TakeQuizPage extends ConsumerStatefulWidget {
     required this.quizTitle,
     required this.questions,
   }) : super(key: key);
-  
+
   /// Create a TakeQuizPage from a quiz ID
   static Widget fromId(String quizId) {
     return FutureBuilder<Quiz>(
@@ -278,7 +401,7 @@ class TakeQuizPage extends ConsumerStatefulWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        
+
         if (quizSnapshot.hasError || !quizSnapshot.hasData) {
           return Scaffold(
             body: Center(
@@ -286,9 +409,9 @@ class TakeQuizPage extends ConsumerStatefulWidget {
             ),
           );
         }
-        
+
         final quiz = quizSnapshot.data!;
-        
+
         return FutureBuilder<List<Question>>(
           future: QuizService.getQuestionsForQuiz(quizId),
           builder: (context, questionsSnapshot) {
@@ -297,17 +420,19 @@ class TakeQuizPage extends ConsumerStatefulWidget {
                 body: Center(child: CircularProgressIndicator()),
               );
             }
-            
+
             if (questionsSnapshot.hasError || !questionsSnapshot.hasData) {
               return Scaffold(
                 body: Center(
-                  child: Text('Error loading questions: ${questionsSnapshot.error}'),
+                  child: Text(
+                    'Error loading questions: ${questionsSnapshot.error}',
+                  ),
                 ),
               );
             }
-            
+
             final questions = questionsSnapshot.data!;
-            
+
             if (questions.isEmpty) {
               return Scaffold(
                 appBar: AppBar(title: Text(quiz.title)),
@@ -316,7 +441,7 @@ class TakeQuizPage extends ConsumerStatefulWidget {
                 ),
               );
             }
-            
+
             return TakeQuizPage(
               quizId: quizId,
               quizTitle: quiz.title,
@@ -388,7 +513,7 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
               ],
             ),
           ),
-          
+
           // Question
           Expanded(
             child: SingleChildScrollView(
@@ -410,7 +535,7 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
               ),
             ),
           ),
-          
+
           // Navigation buttons
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -424,13 +549,15 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
                   )
                 else
                   const SizedBox(width: 100),
-                  
+
                 ElevatedButton(
-                  onPressed: quizAttempt.isCurrentQuestionAnswered()
-                      ? () => quizAttemptNotifier.nextQuestion()
-                      : null,
+                  onPressed:
+                      quizAttempt.isCurrentQuestionAnswered()
+                          ? () => quizAttemptNotifier.nextQuestion()
+                          : null,
                   child: Text(
-                    quizAttempt.currentQuestionIndex == quizAttempt.totalQuestions - 1
+                    quizAttempt.currentQuestionIndex ==
+                            quizAttempt.totalQuestions - 1
                         ? 'Finish'
                         : 'Next',
                   ),
@@ -503,14 +630,17 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
   Widget _buildQuizCompletedScreen(QuizAttemptState quizAttempt) {
     // Save quiz attempt and navigate to review page
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final quizAttemptId = await ref.read(quizAttemptProvider(_params).notifier).saveQuizAttempt();
-      
+      final quizAttemptId =
+          await ref
+              .read(quizAttemptProvider(_params).notifier)
+              .saveQuizAttempt();
+
       if (quizAttemptId != null && mounted) {
         // Navigate to quiz review detail page using GoRouter
         context.go('/quiz-review/${quizAttemptId}');
       }
     });
-    
+
     // Show loading screen while saving attempt
     return Scaffold(
       appBar: AppBar(
@@ -539,4 +669,4 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
     final remainingSeconds = seconds % 60;
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
-} 
+}

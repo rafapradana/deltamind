@@ -1,11 +1,14 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/features/auth/auth_controller.dart';
+import 'package:deltamind/features/gamification/gamification_controller.dart';
+import 'package:deltamind/features/gamification/widgets/dashboard_streak_summary.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Dashboard page
 class DashboardPage extends ConsumerStatefulWidget {
@@ -25,6 +28,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   void initState() {
     super.initState();
     _loadDashboardData();
+
+    // Also load gamification data
+    Future.microtask(() {
+      ref.read(gamificationControllerProvider.notifier).loadGamificationData();
+    });
   }
 
   /// Load dashboard data
@@ -53,14 +61,24 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
           IconButton(
+            icon: const Icon(PhosphorIconsFill.trophy),
+            onPressed: () => context.push(AppRoutes.achievements),
+            tooltip: 'Achievements',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadDashboardData,
+            onPressed: () {
+              _loadDashboardData();
+              ref
+                  .read(gamificationControllerProvider.notifier)
+                  .loadGamificationData();
+            },
           ),
           IconButton(
             icon: const Icon(Icons.account_circle),
@@ -68,9 +86,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildBody(context),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _buildBody(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.createQuiz),
         child: const Icon(Icons.add),
@@ -91,11 +110,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             // Welcome card
             _buildWelcomeCard(context),
             const SizedBox(height: 24),
-            
+
+            // Streak summary
+            const DashboardStreakSummary(),
+            const SizedBox(height: 24),
+
             // Quiz history stats
             _buildHistoryStats(),
             const SizedBox(height: 24),
-            
+
             // Recent quizzes
             Text(
               'Recent Quizzes',
@@ -106,7 +129,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ? _buildEmptyQuizzes()
                 : _buildRecentQuizzes(),
             const SizedBox(height: 32),
-            
+
             // Quick actions
             Text(
               'Quick Actions',
@@ -125,7 +148,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget _buildWelcomeCard(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
-    
+
     return Card(
       elevation: 4,
       child: Padding(
@@ -135,11 +158,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.waving_hand,
-                  color: AppColors.primary,
-                  size: 32,
-                ),
+                Icon(Icons.waving_hand, color: AppColors.primary, size: 32),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -169,14 +188,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget _buildHistoryStats() {
     final totalQuizzes = _quizHistoryStats['totalQuizzes'] ?? 0;
     final completedToday = _quizHistoryStats['completedToday'] ?? 0;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Quiz History',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        Text('Quiz History', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         Card(
           child: Padding(
@@ -205,11 +221,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton(
-                  onPressed: completedToday > 0
-                      ? () {
-                          context.push(AppRoutes.history);
-                        }
-                      : null,
+                  onPressed:
+                      completedToday > 0
+                          ? () {
+                            context.push(AppRoutes.history);
+                          }
+                          : null,
                   child: Text(
                     completedToday > 0
                         ? 'Review $completedToday Quizzes'
@@ -230,14 +247,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       children: [
         Icon(icon, color: AppColors.primary),
         const SizedBox(height: 8),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(value, style: Theme.of(context).textTheme.headlineSmall),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
@@ -349,4 +360,4 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ),
     );
   }
-} 
+}

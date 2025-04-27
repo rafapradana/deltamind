@@ -1,6 +1,7 @@
 import 'package:deltamind/features/auth/login_page.dart';
 import 'package:deltamind/features/auth/register_page.dart';
 import 'package:deltamind/features/dashboard/dashboard_page.dart';
+import 'package:deltamind/features/gamification/achievements_page.dart';
 import 'package:deltamind/features/history/history_page.dart';
 import 'package:deltamind/features/history/quiz_review_detail_page.dart';
 import 'package:deltamind/features/onboarding/onboarding_page.dart';
@@ -16,44 +17,44 @@ import 'package:go_router/go_router.dart';
 class AppRoutes {
   /// Root route
   static const String root = '/';
-  
+
   /// Onboarding route
   static const String onboarding = '/onboarding';
-  
+
   /// Login route
   static const String login = '/login';
-  
+
   /// Register route
   static const String register = '/register';
-  
+
   /// Dashboard route
   static const String dashboard = '/dashboard';
-  
+
   /// Profile route
   static const String profile = '/profile';
-  
+
   /// Quiz list route
   static const String quizList = '/quizzes';
-  
+
   /// Create quiz route
   static const String createQuiz = '/create-quiz';
-  
+
   /// Take quiz route
   static const String takeQuiz = '/quiz/:id';
-  
+
   /// History route
   static const String history = '/history';
-  
+
   /// Quiz review detail route
   static const String quizReviewDetail = '/quiz-review/:id';
+
+  /// Achievements route
+  static const String achievements = '/achievements';
 }
 
 /// App router configuration
 final List<GoRoute> appRoutes = [
-  GoRoute(
-    path: AppRoutes.root,
-    redirect: (_, __) => AppRoutes.onboarding,
-  ),
+  GoRoute(path: AppRoutes.root, redirect: (_, __) => AppRoutes.onboarding),
   GoRoute(
     path: AppRoutes.onboarding,
     builder: (context, state) => const OnboardingPage(),
@@ -87,6 +88,10 @@ final List<GoRoute> appRoutes = [
     builder: (context, state) => const HistoryPage(),
   ),
   GoRoute(
+    path: AppRoutes.achievements,
+    builder: (context, state) => const AchievementsPage(),
+  ),
+  GoRoute(
     path: '/quiz-review/:id',
     builder: (context, state) {
       final attemptId = state.pathParameters['id']!;
@@ -97,7 +102,7 @@ final List<GoRoute> appRoutes = [
     path: '/quiz/:id',
     builder: (context, state) {
       final quizId = state.pathParameters['id']!;
-      
+
       return FutureBuilder<Quiz>(
         future: QuizService.getQuizById(quizId),
         builder: (context, quizSnapshot) {
@@ -106,7 +111,7 @@ final List<GoRoute> appRoutes = [
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          
+
           if (quizSnapshot.hasError || !quizSnapshot.hasData) {
             return Scaffold(
               body: Center(
@@ -114,28 +119,31 @@ final List<GoRoute> appRoutes = [
               ),
             );
           }
-          
+
           final quiz = quizSnapshot.data!;
-          
+
           return FutureBuilder<List<Question>>(
             future: QuizService.getQuestionsForQuiz(quizId),
             builder: (context, questionsSnapshot) {
-              if (questionsSnapshot.connectionState == ConnectionState.waiting) {
+              if (questionsSnapshot.connectionState ==
+                  ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              
+
               if (questionsSnapshot.hasError || !questionsSnapshot.hasData) {
                 return Scaffold(
                   body: Center(
-                    child: Text('Error loading questions: ${questionsSnapshot.error}'),
+                    child: Text(
+                      'Error loading questions: ${questionsSnapshot.error}',
+                    ),
                   ),
                 );
               }
-              
+
               final questions = questionsSnapshot.data!;
-              
+
               if (questions.isEmpty) {
                 return Scaffold(
                   appBar: AppBar(title: Text(quiz.title)),
@@ -144,7 +152,7 @@ final List<GoRoute> appRoutes = [
                   ),
                 );
               }
-              
+
               return TakeQuizPage(
                 quizId: quizId,
                 quizTitle: quiz.title,

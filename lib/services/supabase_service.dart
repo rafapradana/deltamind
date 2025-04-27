@@ -2,6 +2,7 @@ import 'package:deltamind/core/config/supabase_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 /// Service for interacting with Supabase
 class SupabaseService {
@@ -48,10 +49,7 @@ class SupabaseService {
     String email,
     String password,
   ) async {
-    return await client.auth.signUp(
-      email: email,
-      password: password,
-    );
+    return await client.auth.signUp(email: email, password: password);
   }
 
   /// Sign in with Google
@@ -84,11 +82,8 @@ class SupabaseService {
 
   /// Get user profile
   static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
-    final response = await client
-        .from('profiles')
-        .select()
-        .eq('id', userId)
-        .single();
+    final response =
+        await client.from('profiles').select().eq('id', userId).single();
 
     return response;
   }
@@ -116,33 +111,35 @@ class SupabaseService {
       if (userId == null) {
         throw Exception('User not authenticated');
       }
-      
+
       // Get all quiz attempts for the user
       final response = await client
           .from('quiz_attempts')
           .select('created_at')
           .eq('user_id', userId);
-          
+
       final attempts = response as List;
       final totalQuizzes = attempts.length;
-      
+
       // Calculate today's quizzes
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      
-      final completedToday = attempts.where((attempt) {
-        final createdAt = DateTime.parse(attempt['created_at']);
-        return createdAt.isAfter(today);
-      }).length;
-      
+
+      final completedToday =
+          attempts.where((attempt) {
+            final createdAt = DateTime.parse(attempt['created_at']);
+            return createdAt.isAfter(today);
+          }).length;
+
       // Calculate this week's quizzes
       final weekStart = today.subtract(Duration(days: today.weekday - 1));
-      
-      final weekly = attempts.where((attempt) {
-        final createdAt = DateTime.parse(attempt['created_at']);
-        return createdAt.isAfter(weekStart);
-      }).length;
-      
+
+      final weekly =
+          attempts.where((attempt) {
+            final createdAt = DateTime.parse(attempt['created_at']);
+            return createdAt.isAfter(weekStart);
+          }).length;
+
       return {
         'totalQuizzes': totalQuizzes,
         'completedToday': completedToday,
@@ -150,14 +147,10 @@ class SupabaseService {
       };
     } catch (e) {
       debugPrint('Error getting quiz statistics: $e');
-      return {
-        'totalQuizzes': 0, 
-        'completedToday': 0,
-        'weekly': 0,
-      };
+      return {'totalQuizzes': 0, 'completedToday': 0, 'weekly': 0};
     }
   }
-  
+
   /// Delete a quiz attempt completely
   static Future<bool> deleteQuizAttempt(String quizAttemptId) async {
     try {
@@ -165,85 +158,92 @@ class SupabaseService {
       if (userId == null) {
         throw Exception('User not authenticated');
       }
-      
+
       debugPrint('Deleting quiz attempt $quizAttemptId for user $userId');
-      
+
       // First try using the stored procedure we created
       try {
         debugPrint('Attempting deletion via stored procedure');
         final result = await client.rpc(
           'delete_quiz_attempt',
-          params: {'attempt_id': quizAttemptId}
+          params: {'attempt_id': quizAttemptId},
         );
-        
+
         // Check if the deletion was successful
         if (result == true) {
           debugPrint('Deletion via stored procedure successful');
           return true;
         } else {
-          debugPrint('Stored procedure returned false, trying fallback methods');
+          debugPrint(
+            'Stored procedure returned false, trying fallback methods',
+          );
         }
       } catch (procError) {
         debugPrint('Error using stored procedure: $procError');
         // Continue with fallback methods
       }
-      
+
       // Verify that this user owns the attempt
-      final attemptResponse = await client
-          .from('quiz_attempts')
-          .select('user_id')
-          .eq('id', quizAttemptId)
-          .maybeSingle();
-          
+      final attemptResponse =
+          await client
+              .from('quiz_attempts')
+              .select('user_id')
+              .eq('id', quizAttemptId)
+              .maybeSingle();
+
       if (attemptResponse == null) {
         debugPrint('Quiz attempt not found');
         return false;
       }
-      
+
       final attemptUserId = attemptResponse['user_id'];
       if (attemptUserId != userId) {
-        debugPrint('User $userId does not own quiz attempt $quizAttemptId (owned by $attemptUserId)');
+        debugPrint(
+          'User $userId does not own quiz attempt $quizAttemptId (owned by $attemptUserId)',
+        );
         return false;
       }
-      
+
       // Delete in this specific order to handle any potential foreign key issues
-      
+
       // 1. First delete AI recommendations
       await client
           .from('ai_recommendations')
           .delete()
           .eq('quiz_attempt_id', quizAttemptId);
-      
+
       // 2. Then delete user answers
       await client
           .from('user_answers')
           .delete()
           .eq('quiz_attempt_id', quizAttemptId);
-      
+
       // 3. Finally delete the quiz attempt itself
       final deleteResponse = await client
           .from('quiz_attempts')
           .delete()
           .eq('id', quizAttemptId);
-          
+
       // Verify deletion was successful
       final verifyResponse = await client
           .from('quiz_attempts')
           .select()
           .eq('id', quizAttemptId);
-          
+
       final isDeleted = verifyResponse.isEmpty;
-      debugPrint('Quiz attempt deletion verification: ${isDeleted ? 'SUCCESS' : 'FAILED'}');
-      
+      debugPrint(
+        'Quiz attempt deletion verification: ${isDeleted ? 'SUCCESS' : 'FAILED'}',
+      );
+
       // If normal deletion failed, try direct SQL as a last resort
       if (!isDeleted) {
         return await _forceDeletionWithSQL(quizAttemptId, userId);
       }
-      
+
       return isDeleted;
     } catch (e) {
       debugPrint('Error deleting quiz attempt: $e');
-      
+
       // Try direct SQL as a fallback
       try {
         final userId = currentUser?.id;
@@ -253,40 +253,45 @@ class SupabaseService {
       } catch (sqlError) {
         debugPrint('SQL fallback deletion also failed: $sqlError');
       }
-      
+
       return false;
     }
   }
-  
+
   /// Force deletion using direct SQL as a last resort
   /// Only use this when normal deletion fails
-  static Future<bool> _forceDeletionWithSQL(String quizAttemptId, String userId) async {
+  static Future<bool> _forceDeletionWithSQL(
+    String quizAttemptId,
+    String userId,
+  ) async {
     try {
       debugPrint('Attempting forced deletion as fallback for $quizAttemptId');
-      
+
       // First check if the user actually owns this quiz attempt as a safety measure
-      final ownershipCheck = await client
-          .from('quiz_attempts')
-          .select('id')
-          .eq('id', quizAttemptId)
-          .eq('user_id', userId)
-          .maybeSingle();
-          
+      final ownershipCheck =
+          await client
+              .from('quiz_attempts')
+              .select('id')
+              .eq('id', quizAttemptId)
+              .eq('user_id', userId)
+              .maybeSingle();
+
       if (ownershipCheck == null) {
         debugPrint('Ownership verification failed for fallback deletion');
         return false;
       }
-      
+
       // Try a method that bypasses some restrictions
       try {
         // 1. Try deleting related records first
         debugPrint('Fallback: Deleting AI recommendations');
-        await client.rpc('delete_quiz_recommendations', params: {
-          'attempt_id': quizAttemptId
-        });
+        await client.rpc(
+          'delete_quiz_recommendations',
+          params: {'attempt_id': quizAttemptId},
+        );
       } catch (e) {
         debugPrint('RPC failed, falling back to direct deletion: $e');
-        
+
         // Direct API call first for recommendations
         try {
           await client
@@ -297,7 +302,7 @@ class SupabaseService {
         } catch (recError) {
           debugPrint('Direct deletion of recommendations failed: $recError');
         }
-        
+
         // Then user answers
         try {
           await client
@@ -309,7 +314,7 @@ class SupabaseService {
           debugPrint('Direct deletion of user answers failed: $ansError');
         }
       }
-      
+
       // Finally delete the quiz attempt
       try {
         await client
@@ -322,13 +327,13 @@ class SupabaseService {
         debugPrint('Final deletion of quiz attempt failed: $attemptError');
         return false;
       }
-      
+
       // Verify deletion succeeded
       final verifyDeletion = await client
           .from('quiz_attempts')
           .select()
           .eq('id', quizAttemptId);
-          
+
       final success = verifyDeletion.isEmpty;
       debugPrint('Forced deletion ${success ? 'SUCCEEDED' : 'FAILED'}');
       return success;
@@ -337,4 +342,27 @@ class SupabaseService {
       return false;
     }
   }
-} 
+
+  /// Check if a quiz attempt exists by ID
+  static Future<bool> checkQuizAttemptExists(String attemptId) async {
+    try {
+      final response =
+          await client
+              .from('quiz_attempts')
+              .select('id')
+              .eq('id', attemptId)
+              .maybeSingle();
+
+      return response != null;
+    } catch (e) {
+      debugPrint('Error checking quiz attempt: $e');
+      return false;
+    }
+  }
+
+  /// Generate a UUID
+  static String generateUuid() {
+    const uuid = Uuid();
+    return uuid.v4();
+  }
+}

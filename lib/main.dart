@@ -5,6 +5,7 @@ import 'package:deltamind/features/auth/auth_controller.dart';
 import 'package:deltamind/features/auth/login_page.dart';
 import 'package:deltamind/features/auth/register_page.dart';
 import 'package:deltamind/features/dashboard/dashboard_page.dart';
+import 'package:deltamind/features/gamification/achievements_page.dart';
 import 'package:deltamind/features/navigation/scaffold_with_nav_bar.dart';
 import 'package:deltamind/features/onboarding/onboarding_page.dart';
 import 'package:deltamind/features/profile/profile_page.dart';
@@ -23,7 +24,7 @@ import 'package:go_router/go_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize services
   try {
     await SupabaseService.initialize();
@@ -31,18 +32,14 @@ void main() async {
   } catch (e) {
     debugPrint('Error initializing services: $e');
   }
-  
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 /// App router provider
 final _routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
-  
+
   return GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: true,
@@ -53,30 +50,27 @@ final _routerProvider = Provider<GoRouter>((ref) {
       final isOnboardingRoute = state.matchedLocation == AppRoutes.onboarding;
       final isLoginRoute = state.matchedLocation == AppRoutes.login;
       final isRegisterRoute = state.matchedLocation == AppRoutes.register;
-      
+
       // If the user is not logged in and is not on a public route, redirect to onboarding
-      if (!isLoggedIn && 
-          !isOnboardingRoute && 
-          !isLoginRoute && 
+      if (!isLoggedIn &&
+          !isOnboardingRoute &&
+          !isLoginRoute &&
           !isRegisterRoute) {
         return AppRoutes.onboarding;
       }
-      
+
       // If the user is logged in and is on a public route, redirect to dashboard
-      if (isLoggedIn && 
+      if (isLoggedIn &&
           (isOnboardingRoute || isLoginRoute || isRegisterRoute)) {
         return AppRoutes.dashboard;
       }
-      
+
       // No redirect needed
       return null;
     },
     routes: [
       // Public routes (no navigation bar)
-      GoRoute(
-        path: AppRoutes.root,
-        redirect: (_, __) => AppRoutes.onboarding,
-      ),
+      GoRoute(path: AppRoutes.root, redirect: (_, __) => AppRoutes.onboarding),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingPage(),
@@ -89,7 +83,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.register,
         builder: (context, state) => const RegisterPage(),
       ),
-      
+
       // Shell route with navigation bar for authenticated routes
       ShellRoute(
         builder: (context, state, child) => ScaffoldWithNavBar(child: child),
@@ -115,10 +109,14 @@ final _routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const CreateQuizPage(),
           ),
           GoRoute(
+            path: AppRoutes.achievements,
+            builder: (context, state) => const AchievementsPage(),
+          ),
+          GoRoute(
             path: '/quiz/:id',
             builder: (context, state) {
               final quizId = state.pathParameters['id']!;
-              
+
               return TakeQuizPage.fromId(quizId);
             },
           ),
@@ -126,7 +124,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
             path: '/quiz-review/:id',
             builder: (context, state) {
               final attemptId = state.pathParameters['id']!;
-              
+
               return QuizReviewDetailPage(attemptId: attemptId);
             },
           ),
@@ -142,7 +140,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(_routerProvider);
-    
+
     return MaterialApp.router(
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
