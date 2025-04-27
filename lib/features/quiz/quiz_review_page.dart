@@ -254,6 +254,89 @@ class _QuizReviewPageState extends ConsumerState<QuizReviewPage> {
           
           const SizedBox(height: 32),
           
+          // AI Learning Recommendations
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+            ),
+            elevation: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade700,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(AppTheme.borderRadiusMedium),
+                      topRight: Radius.circular(AppTheme.borderRadiusMedium),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        PhosphorIcons.lightbulb(),
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Personalized Learning Path',
+                        style: AppTheme.subtitle.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Want a personalized learning plan based on your quiz results?',
+                        style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Our AI can analyze your strengths and weaknesses to generate a tailored learning path with recommended resources and practice exercises.',
+                        style: AppTheme.bodyText,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // TODO: Implement AI recommendation generation
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Generating your personalized learning plan...'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          // In a real implementation, this would call a service to generate recommendations
+                        },
+                        icon: Icon(PhosphorIcons.sparkle()),
+                        label: const Text('Generate Learning Plan'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
           // Back to quiz button
           SizedBox(
             width: double.infinity,

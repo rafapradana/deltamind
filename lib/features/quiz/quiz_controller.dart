@@ -99,9 +99,9 @@ class QuizController extends StateNotifier<QuizState> {
       
       if (mounted) {
         _safeUpdateState(state.copyWith(
-          currentQuiz: quiz,
-          currentQuestions: questions,
-          isLoading: false,
+        currentQuiz: quiz,
+        currentQuestions: questions,
+        isLoading: false,
         ));
       }
     } catch (e) {
@@ -136,7 +136,7 @@ class QuizController extends StateNotifier<QuizState> {
       
       // Reload user quizzes to update the list
       if (mounted) {
-        await loadUserQuizzes();
+      await loadUserQuizzes();
       }
       
       return quiz;
@@ -163,7 +163,7 @@ class QuizController extends StateNotifier<QuizState> {
       
       // Reload user quizzes to update the list
       if (mounted) {
-        await loadUserQuizzes();
+      await loadUserQuizzes();
       }
       
       return true;
@@ -204,7 +204,7 @@ class QuizController extends StateNotifier<QuizState> {
       
       // Reload user quizzes to update the list
       if (mounted) {
-        await loadUserQuizzes();
+      await loadUserQuizzes();
         _safeUpdateState(state.copyWith(isGenerating: false));
       }
       
@@ -250,10 +250,10 @@ class QuizController extends StateNotifier<QuizState> {
       
       // Reload questions
       if (mounted) {
-        final questions = await QuizService.getQuestionsForQuiz(state.currentQuiz!.id);
+      final questions = await QuizService.getQuestionsForQuiz(state.currentQuiz!.id);
         _safeUpdateState(state.copyWith(
-          currentQuestions: questions,
-          isLoading: false,
+        currentQuestions: questions,
+        isLoading: false,
         ));
       }
       

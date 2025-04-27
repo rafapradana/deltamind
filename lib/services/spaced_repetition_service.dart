@@ -293,7 +293,7 @@ class SpacedRepetitionService {
       final averageEaseFactor = items.isEmpty ? 0.0 : 
           items.fold<double>(0, (sum, item) => sum + item.easeFactor) / items.length;
       final totalReviews = items.fold<int>(0, (sum, item) => sum + item.reviewCount);
-      
+
       // Calculate mastered cards (cards with interval > 30 days)
       final mastered = items.where((item) => item.interval >= 30).length;
 

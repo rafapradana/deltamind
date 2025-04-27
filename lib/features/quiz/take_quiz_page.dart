@@ -123,29 +123,29 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
     if (!mounted) return;
     
     try {
-      final currentQuestion = state.currentQuestion;
-      final questionId = currentQuestion.id;
-      final isCorrect = answer == currentQuestion.correctAnswer;
-      final timeTaken = DateTime.now().difference(state.startTime).inSeconds;
-  
-      // Update user answers, correctness, and time taken
-      final updatedUserAnswers = Map<String, String>.from(state.userAnswers);
-      updatedUserAnswers[questionId] = answer;
-  
-      final updatedIsCorrect = Map<String, bool>.from(state.isCorrect);
-      updatedIsCorrect[questionId] = isCorrect;
-  
-      final updatedTimeTaken = Map<String, int>.from(state.timeTaken);
-      updatedTimeTaken[questionId] = timeTaken;
-  
-      // Calculate new score
-      final newScore = updatedIsCorrect.values.where((value) => value).length;
-  
+    final currentQuestion = state.currentQuestion;
+    final questionId = currentQuestion.id;
+    final isCorrect = answer == currentQuestion.correctAnswer;
+    final timeTaken = DateTime.now().difference(state.startTime).inSeconds;
+
+    // Update user answers, correctness, and time taken
+    final updatedUserAnswers = Map<String, String>.from(state.userAnswers);
+    updatedUserAnswers[questionId] = answer;
+
+    final updatedIsCorrect = Map<String, bool>.from(state.isCorrect);
+    updatedIsCorrect[questionId] = isCorrect;
+
+    final updatedTimeTaken = Map<String, int>.from(state.timeTaken);
+    updatedTimeTaken[questionId] = timeTaken;
+
+    // Calculate new score
+    final newScore = updatedIsCorrect.values.where((value) => value).length;
+
       _safeUpdateState(state.copyWith(
-        userAnswers: updatedUserAnswers,
-        isCorrect: updatedIsCorrect,
-        timeTaken: updatedTimeTaken,
-        score: newScore,
+      userAnswers: updatedUserAnswers,
+      isCorrect: updatedIsCorrect,
+      timeTaken: updatedTimeTaken,
+      score: newScore,
       ));
     } catch (e) {
       debugPrint('Error answering question: $e');
@@ -157,12 +157,12 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
     if (!mounted) return;
     
     try {
-      if (state.currentQuestionIndex < state.questions.length - 1) {
+    if (state.currentQuestionIndex < state.questions.length - 1) {
         _safeUpdateState(state.copyWith(
-          currentQuestionIndex: state.currentQuestionIndex + 1,
+        currentQuestionIndex: state.currentQuestionIndex + 1,
         ));
-      } else {
-        completeQuiz();
+    } else {
+      completeQuiz();
       }
     } catch (e) {
       debugPrint('Error moving to next question: $e');
@@ -174,9 +174,9 @@ class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
     if (!mounted) return;
     
     try {
-      if (state.currentQuestionIndex > 0) {
+    if (state.currentQuestionIndex > 0) {
         _safeUpdateState(state.copyWith(
-          currentQuestionIndex: state.currentQuestionIndex - 1,
+        currentQuestionIndex: state.currentQuestionIndex - 1,
         ));
       }
     } catch (e) {

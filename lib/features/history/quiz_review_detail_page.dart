@@ -38,7 +38,7 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
     super.initState();
     _loadQuizAttempt();
     
-    // Set recommendations to be visible by default
+    // Don't automatically show recommendations
     _showRecommendations = true;
     
     // Add a delay to ensure the widget is built before starting the animation
@@ -50,23 +50,7 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
       }
     });
     
-    // Add a fallback timeout to ensure we don't get stuck in loading state
-    Future.delayed(const Duration(seconds: 15), () {
-      if (mounted && _isLoadingRecommendations) {
-        setState(() {
-          _isLoadingRecommendations = false;
-          if (_aiRecommendation == null) {
-            _aiRecommendation = {
-              'performance_overview': 'Loading recommendations timed out. Please try regenerating.',
-              'strengths': 'Analysis not available.',
-              'areas_for_improvement': 'Analysis not available.',
-              'learning_strategies': 'Analysis not available.',
-              'action_plan': 'Try regenerating recommendations or review your answers manually.'
-            };
-          }
-        });
-      }
-    });
+    // Don't auto-generate fallback - we will prompt the user instead
   }
 
   Future<void> _loadQuizAttempt() async {
@@ -155,8 +139,7 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
         });
         print('Error loading recommendation: $e');
         
-        // Auto-generate recommendation if one doesn't exist
-        _generateInitialRecommendation();
+        // Don't auto-generate recommendation - we will prompt the user instead
       }
     }
   }
@@ -441,11 +424,6 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
           
           const SizedBox(height: 24),
           
-          // AI Recommendations section - now positioned before questions for better visibility
-          _buildAIRecommendationsSection(),
-          
-          const SizedBox(height: 24),
-          
           // Questions title with enhanced design
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -482,6 +460,11 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
           
           // Questions and answers list
           ..._buildQuestionsAnswers(),
+          
+          const SizedBox(height: 32),
+          
+          // AI Recommendations section - moved here after questions and before dashboard button
+          _buildAIRecommendationsSection(),
           
           const SizedBox(height: 32),
           
@@ -669,31 +652,51 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
       child: Column(
         children: [
           Icon(
-            PhosphorIcons.warningCircle(),
+            PhosphorIcons.sparkle(),
             size: 48,
-            color: Colors.amber.shade700,
+            color: Colors.purple.shade700,
           ),
           const SizedBox(height: 16),
           Text(
-            'Unable to generate recommendations',
-            style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.w500),
+            'AI Learning Assistant',
+            style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold, fontSize: 18),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Want personalized insights about your performance and learning strategy recommendations?',
+            style: AppTheme.bodyText.copyWith(color: Colors.grey.shade800, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'We couldn\'t create personalized recommendations for this quiz',
+            'Our AI can analyze your quiz results to identify your strengths, areas for improvement, and suggest customized learning paths.',
             style: AppTheme.bodyText.copyWith(color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _generateInitialRecommendation,
-            icon: Icon(PhosphorIcons.arrowClockwise()),
-            label: const Text('Try Again'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo.shade100,
-              foregroundColor: Colors.indigo.shade800,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _generateInitialRecommendation,
+              icon: Icon(PhosphorIcons.lightning()),
+              label: const Text('Generate AI Recommendations'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'This uses AI to process your quiz responses. Your data is kept private and secure.',
+            style: AppTheme.smallText.copyWith(color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -708,6 +711,9 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
     required String content,
     List<Widget>? actions,
   }) {
+    // Parse markdown content to support rich text formatting
+    final formattedContent = _formatMarkdownContent(content);
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
@@ -744,10 +750,7 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
           // Card content with padding
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(
-              content,
-              style: AppTheme.bodyText,
-            ),
+            child: formattedContent,
           ),
           // Optional action buttons
           if (actions != null) ...[
@@ -765,184 +768,151 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
     );
   }
   
-  // Recommendation cards UI with modern design
-  Widget _buildRecommendationCards() {
-    // Check if recommendation has required fields
-    if (_aiRecommendation == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Recommendation data is missing. Please try regenerating.',
-            style: AppTheme.bodyText.copyWith(color: Colors.red.shade800),
-            textAlign: TextAlign.center,
+  // Helper method to format markdown content with rich styling
+  Widget _formatMarkdownContent(String content) {
+    final List<Widget> formattedWidgets = [];
+    
+    // Split content by line breaks to handle them separately
+    final lines = content.split('\n');
+    
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      
+      if (line.isEmpty) {
+        formattedWidgets.add(const SizedBox(height: 8));
+        continue;
+      }
+      
+      // Handle bullet points
+      if (line.startsWith('- ') || line.startsWith('* ')) {
+        final bulletText = line.substring(2);
+        formattedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 6, right: 8),
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade700,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    bulletText,
+                    style: AppTheme.bodyText,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
+        );
+      }
+      // Handle section headers (indicated by ** at beginning and end)
+      else if (line.startsWith('**') && line.endsWith('**')) {
+        final headerText = line.substring(2, line.length - 2);
+        formattedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8, top: 4),
+            child: Text(
+              headerText,
+              style: AppTheme.subtitle.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
+              ),
+            ),
+          ),
+        );
+      }
+      // Handle emphasis (indicated by * at beginning and end)
+      else if (line.startsWith('*') && line.endsWith('*')) {
+        final emphasizedText = line.substring(1, line.length - 1);
+        formattedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              emphasizedText,
+              style: AppTheme.bodyText.copyWith(
+                fontStyle: FontStyle.italic,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+        );
+      }
+      // Handle normal text with inline formatting
+      else {
+        String processedText = line;
+        
+        // Check for inline bold formatting with **text**
+        final boldRegExp = RegExp(r'\*\*(.*?)\*\*');
+        final boldMatches = boldRegExp.allMatches(processedText);
+        
+        if (boldMatches.isNotEmpty) {
+          // If we have inline formatting, use RichText
+          final spans = <TextSpan>[];
+          int lastIndex = 0;
+          
+          for (final match in boldMatches) {
+            if (match.start > lastIndex) {
+              spans.add(TextSpan(
+                text: processedText.substring(lastIndex, match.start),
+                style: AppTheme.bodyText,
+              ));
+            }
+            
+            spans.add(TextSpan(
+              text: match.group(1),
+              style: AppTheme.bodyText.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ));
+            
+            lastIndex = match.end;
+          }
+          
+          if (lastIndex < processedText.length) {
+            spans.add(TextSpan(
+              text: processedText.substring(lastIndex),
+              style: AppTheme.bodyText,
+            ));
+          }
+          
+          formattedWidgets.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: RichText(
+                text: TextSpan(
+                  children: spans,
+                  style: AppTheme.bodyText,
+                ),
+              ),
+            ),
+          );
+        } else {
+          // Simple text without inline formatting
+          formattedWidgets.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                processedText,
+                style: AppTheme.bodyText,
+              ),
+            ),
+          );
+        }
+      }
     }
     
-    // Ensure all required fields are present, using empty strings as fallbacks
-    // Support both new and old field names
-    final performanceOverview = _aiRecommendation!['performance_overview'] 
-        ?? _aiRecommendation!['overall_assessment'] 
-        ?? 'Performance data not available.';
-        
-    final strengths = _aiRecommendation!['strengths'] 
-        ?? _aiRecommendation!['strong_areas'] 
-        ?? 'Strength analysis not available.';
-        
-    final areasForImprovement = _aiRecommendation!['areas_for_improvement'] 
-        ?? _aiRecommendation!['weak_areas'] 
-        ?? 'Areas for improvement not available.';
-        
-    final learningStrategies = _aiRecommendation!['learning_strategies'] 
-        ?? _aiRecommendation!['learning_recommendations'] 
-        ?? 'Learning strategies not available.';
-        
-    final actionPlan = _aiRecommendation!['action_plan'] 
-        ?? _aiRecommendation!['next_steps'] 
-        ?? 'Action plan not available.';
-
-    // Define action buttons for the action plan card
-    final actionButtons = [
-      Expanded(
-        child: OutlinedButton.icon(
-          icon: Icon(PhosphorIcons.listBullets(), size: 18),
-          label: const Text('View Quizzes'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            side: BorderSide(color: Colors.green.shade300),
-          ),
-          onPressed: () => context.push(AppRoutes.quizList),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: ElevatedButton.icon(
-          icon: Icon(PhosphorIcons.plus(), size: 18),
-          label: const Text('Create Quiz'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green.shade600,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-          ),
-          onPressed: () => context.push(AppRoutes.createQuiz),
-        ),
-      ),
-    ];
-
-    // Determine layout based on screen width for responsive design
-    final screenWidth = MediaQuery.of(context).size.width;
-    final useHorizontalLayout = screenWidth > 768;
-    
-    if (useHorizontalLayout) {
-      // Horizontal layout for larger screens (tablets, desktops)
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Performance overview card
-          _buildRecommendationCard(
-            title: 'Performance Overview',
-            icon: PhosphorIcons.chartBar(),
-            iconColor: Colors.blue.shade700,
-            content: performanceOverview,
-          ),
-          const SizedBox(height: 16),
-
-          // Strengths and improvements row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildRecommendationCard(
-                  title: 'Your Strengths',
-                  icon: PhosphorIcons.star(),
-                  iconColor: Colors.amber.shade700,
-                  content: strengths,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildRecommendationCard(
-                  title: 'Areas for Improvement',
-                  icon: PhosphorIcons.trendUp(),
-                  iconColor: Colors.orange.shade700,
-                  content: areasForImprovement,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Learning strategies and action plan row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildRecommendationCard(
-                  title: 'Learning Strategies',
-                  icon: PhosphorIcons.lightbulb(),
-                  iconColor: Colors.purple.shade700,
-                  content: learningStrategies,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildRecommendationCard(
-                  title: 'Action Plan',
-                  icon: PhosphorIcons.checkSquare(),
-                  iconColor: Colors.green.shade700,
-                  content: actionPlan,
-                  actions: actionButtons,
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    } else {
-      // Vertical layout for smaller screens (phones)
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildRecommendationCard(
-            title: 'Performance Overview',
-            icon: PhosphorIcons.chartBar(),
-            iconColor: Colors.blue.shade700,
-            content: performanceOverview,
-          ),
-          const SizedBox(height: 16),
-          _buildRecommendationCard(
-            title: 'Your Strengths',
-            icon: PhosphorIcons.star(),
-            iconColor: Colors.amber.shade700,
-            content: strengths,
-          ),
-          const SizedBox(height: 16),
-          _buildRecommendationCard(
-            title: 'Areas for Improvement',
-            icon: PhosphorIcons.trendUp(),
-            iconColor: Colors.orange.shade700,
-            content: areasForImprovement,
-          ),
-          const SizedBox(height: 16),
-          _buildRecommendationCard(
-            title: 'Learning Strategies',
-            icon: PhosphorIcons.lightbulb(),
-            iconColor: Colors.purple.shade700,
-            content: learningStrategies,
-          ),
-          const SizedBox(height: 16),
-          _buildRecommendationCard(
-            title: 'Action Plan',
-            icon: PhosphorIcons.checkSquare(),
-            iconColor: Colors.green.shade700,
-            content: actionPlan,
-            actions: actionButtons,
-          ),
-        ],
-      );
-    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: formattedWidgets,
+    );
   }
   
   List<Widget> _buildQuestionsAnswers() {
@@ -1158,6 +1128,177 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
     }
     
     return widgets;
+  }
+  
+  // Recommendation cards UI with modern design
+  Widget _buildRecommendationCards() {
+    // Check if recommendation has required fields
+    if (_aiRecommendation == null) {
+      return _buildNoRecommendationsState();
+    }
+    
+    // Ensure all required fields are present, using empty strings as fallbacks
+    // Support both new and old field names
+    final performanceOverview = _aiRecommendation!['performance_overview'] 
+        ?? _aiRecommendation!['overall_assessment'] 
+        ?? 'Performance data not available.';
+        
+    final strengths = _aiRecommendation!['strengths'] 
+        ?? _aiRecommendation!['strong_areas'] 
+        ?? 'Strength analysis not available.';
+        
+    final areasForImprovement = _aiRecommendation!['areas_for_improvement'] 
+        ?? _aiRecommendation!['weak_areas'] 
+        ?? 'Areas for improvement not available.';
+        
+    final learningStrategies = _aiRecommendation!['learning_strategies'] 
+        ?? _aiRecommendation!['learning_recommendations'] 
+        ?? 'Learning strategies not available.';
+        
+    final actionPlan = _aiRecommendation!['action_plan'] 
+        ?? _aiRecommendation!['next_steps'] 
+        ?? 'Action plan not available.';
+
+    // Define action buttons for the action plan card
+    final actionButtons = [
+      Expanded(
+        child: OutlinedButton.icon(
+          icon: Icon(PhosphorIcons.listBullets(), size: 18),
+          label: const Text('View Quizzes'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            side: BorderSide(color: Colors.green.shade300),
+          ),
+          onPressed: () => context.push(AppRoutes.quizList),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: ElevatedButton.icon(
+          icon: Icon(PhosphorIcons.plus(), size: 18),
+          label: const Text('Create Quiz'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green.shade600,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+          onPressed: () => context.push(AppRoutes.createQuiz),
+        ),
+      ),
+    ];
+
+    // Determine layout based on screen width for responsive design
+    final screenWidth = MediaQuery.of(context).size.width;
+    final useHorizontalLayout = screenWidth > 768;
+    
+    if (useHorizontalLayout) {
+      // Horizontal layout for larger screens (tablets, desktops)
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Performance overview card
+          _buildRecommendationCard(
+            title: 'Performance Overview',
+            icon: PhosphorIcons.chartBar(),
+            iconColor: Colors.blue.shade700,
+            content: performanceOverview,
+          ),
+          const SizedBox(height: 16),
+
+          // Strengths and improvements row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildRecommendationCard(
+                  title: 'Your Strengths',
+                  icon: PhosphorIcons.star(),
+                  iconColor: Colors.amber.shade700,
+                  content: strengths,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildRecommendationCard(
+                  title: 'Areas for Improvement',
+                  icon: PhosphorIcons.trendUp(),
+                  iconColor: Colors.orange.shade700,
+                  content: areasForImprovement,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Learning strategies and action plan row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildRecommendationCard(
+                  title: 'Learning Strategies',
+                  icon: PhosphorIcons.lightbulb(),
+                  iconColor: Colors.purple.shade700,
+                  content: learningStrategies,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildRecommendationCard(
+                  title: 'Action Plan',
+                  icon: PhosphorIcons.checkSquare(),
+                  iconColor: Colors.green.shade700,
+                  content: actionPlan,
+                  actions: actionButtons,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      // Vertical layout for smaller screens (phones)
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRecommendationCard(
+            title: 'Performance Overview',
+            icon: PhosphorIcons.chartBar(),
+            iconColor: Colors.blue.shade700,
+            content: performanceOverview,
+          ),
+          const SizedBox(height: 16),
+          _buildRecommendationCard(
+            title: 'Your Strengths',
+            icon: PhosphorIcons.star(),
+            iconColor: Colors.amber.shade700,
+            content: strengths,
+          ),
+          const SizedBox(height: 16),
+          _buildRecommendationCard(
+            title: 'Areas for Improvement',
+            icon: PhosphorIcons.trendUp(),
+            iconColor: Colors.orange.shade700,
+            content: areasForImprovement,
+          ),
+          const SizedBox(height: 16),
+          _buildRecommendationCard(
+            title: 'Learning Strategies',
+            icon: PhosphorIcons.lightbulb(),
+            iconColor: Colors.purple.shade700,
+            content: learningStrategies,
+          ),
+          const SizedBox(height: 16),
+          _buildRecommendationCard(
+            title: 'Action Plan',
+            icon: PhosphorIcons.checkSquare(),
+            iconColor: Colors.green.shade700,
+            content: actionPlan,
+            actions: actionButtons,
+          ),
+        ],
+      );
+    }
   }
   
   // Helper function to get score label

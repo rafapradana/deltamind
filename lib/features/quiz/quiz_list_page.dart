@@ -39,8 +39,8 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
 
     try {
       // Use try-catch for the controller interaction
-      try {
-        await ref.read(quizControllerProvider.notifier).loadUserQuizzes();
+    try {
+      await ref.read(quizControllerProvider.notifier).loadUserQuizzes();
       } catch (e) {
         _safeHandleError('loading quizzes from controller', e);
         return;
@@ -50,9 +50,9 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
       return;
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      setState(() {
+        _isLoading = false;
+      });
       }
     }
   }
@@ -106,10 +106,10 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
         _safeHandleError('deleting quiz', e);
       } finally {
         if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        setState(() {
+          _isLoading = false;
+        });
+      }
       }
     }
   }
@@ -130,22 +130,22 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
     // Use try-catch for the controller interaction
     List<Quiz> quizzes = [];
     try {
-      final quizState = ref.watch(quizControllerProvider);
-      _quizzes = quizState.userQuizzes;
-      
-      // Apply search filter
-      if (_searchQuery.isNotEmpty) {
-        _quizzes = _quizzes
-            .where((quiz) =>
-                quiz.title.toLowerCase().contains(_searchQuery.toLowerCase()))
-            .toList();
-      }
-  
-      // Apply type filter
-      if (_filter != 'All') {
-        _quizzes = _quizzes
-            .where((quiz) => quiz.quizType == _filter)
-            .toList();
+    final quizState = ref.watch(quizControllerProvider);
+    _quizzes = quizState.userQuizzes;
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      _quizzes = _quizzes
+          .where((quiz) =>
+              quiz.title.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+
+    // Apply type filter
+    if (_filter != 'All') {
+      _quizzes = _quizzes
+          .where((quiz) => quiz.quizType == _filter)
+          .toList();
       }
     } catch (e) {
       debugPrint('Error watching quiz controller: $e');

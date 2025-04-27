@@ -48,6 +48,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
             total_questions, 
             time_taken, 
             created_at,
+            user_id,
             quizzes (
               id, 
               title, 
@@ -58,23 +59,44 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      setState(() {
-        _quizAttempts = response;
-      });
+      if (mounted) {
+        setState(() {
+          _quizAttempts = response;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error loading quiz history: $e';
-      });
-      debugPrint('Error loading quiz history: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading quiz history: $e';
+          _isLoading = false;
+        });
+        debugPrint('Error loading quiz history: $e');
+      }
     }
   }
 
   /// Delete a quiz attempt
   Future<void> _deleteQuizAttempt(String attemptId) async {
+    // Create a local variable to track this specific deletion
+    bool isDeleting = true;
+    
+    // Store the index for the item being deleted for UI updates
+    int? deletingIndex;
+    for (int i = 0; i < _quizAttempts.length; i++) {
+      if (_quizAttempts[i]['id'] == attemptId) {
+        deletingIndex = i;
+        break;
+      }
+    }
+    
+    // Update UI to show deleting state for this specific card
+    if (deletingIndex != null) {
+      setState(() {
+        _quizAttempts[deletingIndex!]['_isDeleting'] = true;
+      });
+    }
+    
     try {
       // Show confirmation dialog
       final confirm = await showDialog<bool>(
@@ -89,52 +111,75 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
               child: const Text('Delete'),
             ),
           ],
         ),
       );
 
-      if (confirm != true) return;
+      if (confirm != true) {
+        // User canceled, reset deleting state
+        if (deletingIndex != null && mounted) {
+          setState(() {
+            _quizAttempts[deletingIndex!].remove('_isDeleting');
+          });
+        }
+        return;
+      }
 
-      setState(() {
-        _isLoading = true;
-      });
+      // Debug logging
+      debugPrint('User confirmed deletion of quiz attempt: $attemptId');
+      
+      // Use our enhanced deletion method from SupabaseService
+      final success = await SupabaseService.deleteQuizAttempt(attemptId);
+      
+      debugPrint('Deletion ${success ? 'successful' : 'failed'}');
+      
+      if (!success) {
+        throw Exception('Failed to delete quiz attempt. Please try again.');
+      }
 
-      // Delete user answers first (foreign key constraint)
-      await SupabaseService.client
-          .from('user_answers')
-          .delete()
-          .eq('quiz_attempt_id', attemptId);
-
-      // Delete quiz attempt
-      await SupabaseService.client
-          .from('quiz_attempts')
-          .delete()
-          .eq('id', attemptId);
-
-      // Refresh the list
-      await _loadQuizHistory();
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Quiz result deleted'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // Update UI on success
+      if (deletingIndex != null && mounted) {
+        setState(() {
+          _quizAttempts.removeAt(deletingIndex!);
+        });
+          
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quiz result deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
+      debugPrint('Error deleting quiz attempt: $e');
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Error deleting quiz attempt: $e';
-      });
+      
+      // Show error to user with more details
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text('Error deleting quiz: $e'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
         ),
       );
+      
+      // Reset deleting state on error if the item still exists
+      if (deletingIndex != null && deletingIndex < _quizAttempts.length) {
+        setState(() {
+          _quizAttempts[deletingIndex!].remove('_isDeleting');
+        });
+      }
+    } finally {
+      // Force hard refresh of the entire list
+      if (mounted) {
+        debugPrint('Refreshing quiz history list');
+        _loadQuizHistory();
+      }
     }
   }
 
@@ -154,7 +199,11 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? Center(child: Text(_errorMessage!))
-              : _buildContent(),
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _buildContent(),
+                  key: ValueKey<int>(_quizAttempts.length),
+                ),
     );
   }
 
@@ -191,6 +240,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     return RefreshIndicator(
       onRefresh: _loadQuizHistory,
       child: ListView.separated(
+        key: ValueKey<int>(_quizAttempts.length),
         padding: const EdgeInsets.all(16),
         itemCount: _quizAttempts.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -199,129 +249,157 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           final quiz = attempt['quizzes'];
           final score = attempt['score'];
           final totalQuestions = attempt['total_questions'];
-          final percentage = totalQuestions > 0 
-              ? (score / totalQuestions * 100).round() 
+          final percentage = totalQuestions > 0
+              ? (score / totalQuestions * 100).round()
               : 0;
           final createdAt = DateTime.parse(attempt['created_at']);
-          final dateFormat = DateFormat('MMM d, yyyy · h:mm a');
+          final dateFormat = DateFormat('MMM d, yyyy • h:mm a');
+          
+          // Check if this item is being deleted
+          final bool isDeleting = attempt['_isDeleting'] == true;
           
           return Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          quiz['title'] ?? 'Untitled Quiz',
-                          style: AppTheme.subtitle.copyWith(
-                            fontWeight: FontWeight.bold,
+            child: isDeleting
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      PopupMenuButton<String>(
-                        icon: Icon(
-                          PhosphorIcons.dotsThree(),
-                          color: Colors.grey[600],
-                        ),
-                        onSelected: (value) {
-                          if (value == 'delete') {
-                            _deleteQuizAttempt(attempt['id']);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Delete'),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Deleting quiz...',
+                          style: AppTheme.bodyText.copyWith(
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    dateFormat.format(createdAt),
-                    style: AppTheme.smallText.copyWith(color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      _buildInfoChip(
-                        quiz['difficulty'] ?? 'Unknown',
-                        PhosphorIcons.barbell(),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildInfoChip(
-                        quiz['quiz_type'] ?? 'Unknown',
-                        PhosphorIcons.clipboardText(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                      ],
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              'Score',
-                              style: AppTheme.smallText.copyWith(color: Colors.grey[600]),
+                            Expanded(
+                              child: Text(
+                                quiz['title'] ?? 'Untitled Quiz',
+                                style: AppTheme.subtitle.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$score/$totalQuestions',
-                              style: AppTheme.subtitle.copyWith(
-                                fontWeight: FontWeight.bold,
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                PhosphorIcons.dotsThree(),
+                                color: Colors.grey[600],
+                              ),
+                              onSelected: (value) {
+                                if (value == 'delete') {
+                                  _deleteQuizAttempt(attempt['id']);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          dateFormat.format(createdAt),
+                          style: AppTheme.smallText.copyWith(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            _buildInfoChip(
+                              quiz['difficulty'] ?? 'Unknown',
+                              PhosphorIcons.barbell(),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildInfoChip(
+                              quiz['quiz_type'] ?? 'Unknown',
+                              PhosphorIcons.clipboardText(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Score',
+                                    style: AppTheme.smallText.copyWith(color: Colors.grey[600]),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$score/$totalQuestions',
+                                    style: AppTheme.subtitle.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Accuracy',
+                                    style: AppTheme.smallText.copyWith(color: Colors.grey[600]),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$percentage%',
+                                    style: AppTheme.subtitle.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: _getAccuracyColor(percentage),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Accuracy',
-                              style: AppTheme.smallText.copyWith(color: Colors.grey[600]),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _viewQuizDetails(attempt['id']),
+                            icon: Icon(PhosphorIcons.arrowSquareOut()),
+                            label: const Text('View Details'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$percentage%',
-                              style: AppTheme.subtitle.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: _getAccuracyColor(percentage),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _viewQuizDetails(attempt['id']),
-                      icon: Icon(PhosphorIcons.arrowSquareOut()),
-                      label: const Text('View Details'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
           );
         },
       ),

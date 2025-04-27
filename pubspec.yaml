@@ -44,7 +44,7 @@ dependencies:
   # UI Components
   google_fonts: ^6.1.0
   flutter_animate: ^4.5.0
-  phosphor_flutter: ^2.0.1
+  phosphor_flutter: ^2.1.0
   
   # AI Integration - Gemini API
   google_generative_ai: 0.4.7
