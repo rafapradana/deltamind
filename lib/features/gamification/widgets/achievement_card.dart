@@ -506,12 +506,22 @@ class AchievementCard extends StatelessWidget {
     switch (achievement.requirementType) {
       case 'streak_days':
         return 'Maintain a streak of ${achievement.requirementValue} days.';
-      case 'quizzes_completed':
+      case 'quiz_count':
         return 'Complete ${achievement.requirementValue} quizzes.';
-      case 'perfect_scores':
+      case 'perfect_score':
         return 'Get ${achievement.requirementValue} perfect scores in quizzes.';
-      case 'quizzes_created':
+      case 'create_quiz':
         return 'Create ${achievement.requirementValue} quizzes.';
+      case 'quick_completion':
+        return 'Complete ${achievement.requirementValue} quizzes quickly.';
+      case 'accuracy_streak':
+        return 'Maintain at least 90% accuracy across ${achievement.requirementValue} quizzes.';
+      case 'morning_quizzes':
+        return 'Complete ${achievement.requirementValue} quizzes before 10 AM.';
+      case 'weekend_quizzes':
+        return 'Complete ${achievement.requirementValue} quizzes on weekends.';
+      case 'daily_time_spent':
+        return 'Study on the app for ${achievement.requirementValue} minutes in a single day.';
       default:
         return 'Continue using the app to unlock this achievement.';
     }
@@ -531,6 +541,8 @@ class AchievementCard extends StatelessWidget {
         return Colors.red;
       case 'Creation':
         return Colors.teal;
+      case 'Time':
+        return Colors.indigo;
       default:
         return Colors.blueGrey;
     }
@@ -557,6 +569,34 @@ class AchievementCard extends StatelessWidget {
         return PhosphorIconsFill.lightbulb;
       case 'pencil':
         return PhosphorIconsFill.pencilSimple;
+      case 'crown':
+        return PhosphorIconsFill.crown;
+      case 'lightning':
+        return PhosphorIconsFill.lightning;
+      case 'target':
+        return PhosphorIconsFill.target;
+      case 'share':
+        return PhosphorIconsFill.share;
+      case 'users':
+        return PhosphorIconsFill.users;
+      case 'trending_up':
+        return PhosphorIconsFill.trendUp;
+      case 'globe':
+        return PhosphorIconsFill.globe;
+      case 'stack':
+        return PhosphorIconsFill.stack;
+      case 'robot':
+        return PhosphorIconsFill.robot;
+      case 'sliders':
+        return PhosphorIconsFill.sliders;
+      case 'chart':
+        return PhosphorIconsFill.chartLine;
+      case 'sun':
+        return PhosphorIconsFill.sun;
+      case 'calendar':
+        return PhosphorIconsFill.calendar;
+      case 'hourglass':
+        return PhosphorIconsFill.hourglass;
       case 'trophy':
       default:
         return PhosphorIconsFill.trophy;

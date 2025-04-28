@@ -44,6 +44,7 @@ class AppConstants {
     'Streak',
     'Performance',
     'Creation',
+    'Time',
   ];
 
   /// XP formula for level
