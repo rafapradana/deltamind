@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
 
 /// Service for interacting with Supabase
 class SupabaseService {
@@ -102,6 +103,66 @@ class SupabaseService {
     if (avatarUrl != null) data['avatar_url'] = avatarUrl;
 
     await client.from('profiles').update(data).eq('id', userId);
+  }
+
+  /// Upload profile picture and update profile
+  static Future<String?> uploadProfilePicture({
+    required String userId,
+    required Uint8List fileBytes,
+    required String fileName,
+    String fileType = 'image/jpeg',
+  }) async {
+    try {
+      // Get file extension
+      final fileExt = fileName.split('.').last.toLowerCase();
+
+      // Generate a unique file name to prevent conflicts
+      final uniqueFileName =
+          '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+      // Upload file to Supabase Storage
+      final uploadPath = await client.storage
+          .from('avatars')
+          .uploadBinary(
+            uniqueFileName,
+            fileBytes,
+            fileOptions: FileOptions(contentType: fileType),
+          );
+
+      // Create a public URL for the image
+      final avatarUrl = client.storage
+          .from('avatars')
+          .getPublicUrl(uniqueFileName);
+
+      // Update the user's profile with the new avatar URL
+      await updateUserProfile(userId: userId, avatarUrl: avatarUrl);
+
+      return avatarUrl;
+    } catch (e) {
+      debugPrint('Error uploading profile picture: $e');
+      return null;
+    }
+  }
+
+  /// Delete old profile picture if it exists
+  static Future<void> deleteOldProfilePicture(String? oldAvatarUrl) async {
+    if (oldAvatarUrl == null || oldAvatarUrl.isEmpty) return;
+
+    try {
+      // Extract the file path from the URL
+      final storageUrl = client.storage.url;
+      final bucketName = 'avatars';
+
+      if (oldAvatarUrl.startsWith(storageUrl)) {
+        // Extract the file name from the URL
+        final filePath = oldAvatarUrl.split('$bucketName/').last;
+
+        // Delete the file from storage
+        await client.storage.from(bucketName).remove([filePath]);
+      }
+    } catch (e) {
+      debugPrint('Error deleting old profile picture: $e');
+    }
   }
 
   /// Get quiz history statistics
