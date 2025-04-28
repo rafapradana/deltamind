@@ -112,42 +112,61 @@ class SupabaseService {
         throw Exception('User not authenticated');
       }
 
-      // Get all quiz attempts for the user
-      final response = await client
-          .from('quiz_attempts')
-          .select('created_at')
-          .eq('user_id', userId);
+      // Use the SQL function we created to get accurate stats
+      final response = await client.rpc(
+        'get_user_statistics',
+        params: {'user_uuid': userId},
+      );
 
-      final attempts = response as List;
-      final totalQuizzes = attempts.length;
+      if (response == null || response.isEmpty) {
+        return {
+          'total_quizzes': 0,
+          'completed_quizzes': 0,
+          'average_score': 0.0,
+        };
+      }
 
-      // Calculate today's quizzes
+      // The response contains the columns with our new names
+      final stats = response[0];
+
+      // Calculate today's quizzes (still need to get this separately)
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      final completedToday =
-          attempts.where((attempt) {
-            final createdAt = DateTime.parse(attempt['created_at']);
-            return createdAt.isAfter(today);
-          }).length;
+      final attemptsToday = await client
+          .from('quiz_attempts')
+          .select('created_at')
+          .eq('user_id', userId)
+          .gte('created_at', today.toIso8601String());
 
-      // Calculate this week's quizzes
+      final completedToday = (attemptsToday as List).length;
+
+      // Get weekly count
       final weekStart = today.subtract(Duration(days: today.weekday - 1));
+      final weeklyAttempts = await client
+          .from('quiz_attempts')
+          .select('created_at')
+          .eq('user_id', userId)
+          .gte('created_at', weekStart.toIso8601String());
 
-      final weekly =
-          attempts.where((attempt) {
-            final createdAt = DateTime.parse(attempt['created_at']);
-            return createdAt.isAfter(weekStart);
-          }).length;
+      final weekly = (weeklyAttempts as List).length;
 
       return {
-        'totalQuizzes': totalQuizzes,
-        'completedToday': completedToday,
+        'total_quizzes': stats['quiz_count'] ?? 0,
+        'completed_quizzes': stats['completed_count'] ?? 0,
+        'average_score': stats['avg_score'] ?? 0.0,
+        'completed_today': completedToday,
         'weekly': weekly,
       };
     } catch (e) {
       debugPrint('Error getting quiz statistics: $e');
-      return {'totalQuizzes': 0, 'completedToday': 0, 'weekly': 0};
+      return {
+        'total_quizzes': 0,
+        'completed_quizzes': 0,
+        'average_score': 0.0,
+        'completed_today': 0,
+        'weekly': 0,
+      };
     }
   }
 

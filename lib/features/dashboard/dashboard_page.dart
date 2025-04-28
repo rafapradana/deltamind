@@ -1,6 +1,7 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/features/auth/auth_controller.dart';
+import 'package:deltamind/features/dashboard/profile_avatar.dart';
 import 'package:deltamind/features/gamification/gamification_controller.dart';
 import 'package:deltamind/features/gamification/widgets/dashboard_streak_summary.dart';
 import 'package:deltamind/services/quiz_service.dart';
@@ -18,21 +19,39 @@ class DashboardPage extends ConsumerStatefulWidget {
   ConsumerState<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends ConsumerState<DashboardPage> {
+class _DashboardPageState extends ConsumerState<DashboardPage>
+    with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _isLoading = false;
   List<Quiz> _recentQuizzes = [];
   Map<String, dynamic> _quizHistoryStats = {};
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
     _loadDashboardData();
 
     // Also load gamification data
     Future.microtask(() {
       ref.read(gamificationControllerProvider.notifier).loadGamificationData();
     });
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   /// Load dashboard data
@@ -48,12 +67,35 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
       // Get quiz history statistics
       _quizHistoryStats = await SupabaseService.getStatistics();
+
+      // Show success notification for refreshes (not initial load)
+      if (!_animationController.isAnimating && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Dashboard refreshed'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
+
+      // Show error notification
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error refreshing dashboard: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -61,96 +103,495 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(PhosphorIconsFill.trophy),
-            onPressed: () => context.push(AppRoutes.achievements),
-            tooltip: 'Achievements',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _loadDashboardData();
-              ref
-                  .read(gamificationControllerProvider.notifier)
-                  .loadGamificationData();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.account_circle),
-            onPressed: () => context.push(AppRoutes.profile),
-          ),
-        ],
+      body: SafeArea(
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: RefreshIndicator(
+                    onRefresh: _loadDashboardData,
+                    child: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        // App bar with safer height and better accessibility
+                        SliverAppBar(
+                          backgroundColor:
+                              Theme.of(context).scaffoldBackgroundColor,
+                          toolbarHeight: 60.0, // Reduced from 70.0
+                          pinned: true,
+                          elevation: 0,
+                          centerTitle: false,
+                          title: Text(
+                            'DeltaMind',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 22.0, // Smaller font size
+                            ),
+                          ),
+                          actions: [
+                            IconButton(
+                              icon: Icon(PhosphorIconsFill.arrowClockwise),
+                              onPressed: _loadDashboardData,
+                              tooltip: 'Refresh',
+                            ),
+                            const ProfileAvatar(),
+                          ],
+                        ),
+
+                        // Main content
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              const SizedBox(height: 8),
+
+                              // Welcome message in a card
+                              _buildWelcomeCard(user),
+                              const SizedBox(height: 16),
+
+                              // Streak summary with animation
+                              const DashboardStreakSummary(),
+                              const SizedBox(height: 16),
+
+                              // Stats cards with visual improvements
+                              _buildStats(),
+                              const SizedBox(height: 16),
+
+                              // Recent quizzes with visual enhancements
+                              _buildRecentQuizzesSection(),
+                              const SizedBox(height: 80), // Extra space for FAB
+                            ]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _buildBody(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.createQuiz),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 2,
         child: const Icon(Icons.add),
       ),
+      // Remove duplicated bottom navigation bar - use only the one from ScaffoldWithNavBar
     );
   }
 
-  /// Build the main body of the dashboard
-  Widget _buildBody(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _loadDashboardData,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
+  /// Build welcome message in a card
+  Widget _buildWelcomeCard(user) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, AppColors.primary.withOpacity(0.05)],
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome card
-            _buildWelcomeCard(context),
-            const SizedBox(height: 24),
-
-            // Streak summary
-            const DashboardStreakSummary(),
-            const SizedBox(height: 24),
-
-            // Quiz history stats
-            _buildHistoryStats(),
-            const SizedBox(height: 24),
-
-            // Recent quizzes
-            Text(
-              'Recent Quizzes',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  radius: 20,
+                  child: Icon(
+                    PhosphorIconsFill.brain,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: RichText(
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Welcome back, '),
+                        TextSpan(
+                          text: '${user?.email?.split('@').first ?? 'User'}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            _recentQuizzes.isEmpty
-                ? _buildEmptyQuizzes()
-                : _buildRecentQuizzes(),
-            const SizedBox(height: 32),
-
-            // Quick actions
             Text(
-              'Quick Actions',
-              style: Theme.of(context).textTheme.titleLarge,
+              'Ready to train your mind today?',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildQuickActions(),
-            const SizedBox(height: 100), // Extra space at bottom
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => context.push(AppRoutes.quizList),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Start a Quiz'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Build welcome card
-  Widget _buildWelcomeCard(BuildContext context) {
-    final authState = ref.watch(authControllerProvider);
-    final user = authState.user;
+  /// Build stats section
+  Widget _buildStats() {
+    final theme = Theme.of(context);
+    final totalQuizzes = _quizHistoryStats['total_quizzes'] ?? 0;
+    final totalCompleted = _quizHistoryStats['completed_quizzes'] ?? 0;
+    final avgScore = _quizHistoryStats['average_score'] ?? 0.0;
+
+    // Define multiple colors for variety but keep them modern
+    final colors = [
+      AppColors.primary,
+      Colors.green.shade600,
+      Colors.indigo.shade500,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Your Stats',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              // Reduced from titleSmall
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Total Quizzes',
+                totalQuizzes.toString(),
+                PhosphorIconsFill.fileText,
+                colors[0],
+                Colors.blue.shade50,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildStatCard(
+                'Completed',
+                totalCompleted.toString(),
+                PhosphorIconsFill.checkSquare,
+                colors[1],
+                Colors.green.shade50,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildStatCard(
+                'Avg. Score',
+                '${avgScore.toStringAsFixed(1)}%',
+                PhosphorIconsFill.chartBar,
+                colors[2],
+                Colors.indigo.shade50,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Build stat card with responsive width
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    Color bgColor,
+  ) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade700,
+              fontSize: 10,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build recent quizzes section
+  Widget _buildRecentQuizzesSection() {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Recent Quizzes',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              // Reduced from titleSmall
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        _recentQuizzes.isEmpty
+            ? _buildEmptyState(
+              'No quizzes yet',
+              'Create your first quiz to get started',
+              PhosphorIconsFill.clipboard,
+            )
+            : ListView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              itemCount: _recentQuizzes.length,
+              padding: EdgeInsets.zero,
+              itemBuilder: (context, index) {
+                final quiz = _recentQuizzes[index];
+                return _buildQuizItem(quiz, index);
+              },
+            ),
+      ],
+    );
+  }
+
+  /// Build empty state placeholder
+  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 32, color: Colors.grey.shade400),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build quiz item card with theme-consistent colors
+  Widget _buildQuizItem(Quiz quiz, int index) {
+    final theme = Theme.of(context);
+
+    // Use app theme colors
+    final bgColors = [
+      AppColors.primary.withOpacity(0.05),
+      AppColors.primary.withOpacity(0.08),
+      AppColors.primary.withOpacity(0.12),
+    ];
+
+    final iconColors = [
+      AppColors.primary,
+      AppColors.primary,
+      AppColors.primary,
+    ];
+
+    final colorIndex = index % bgColors.length;
 
     return Card(
-      elevation: 4,
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: AppColors.primary.withOpacity(0.15)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        tileColor: bgColors[colorIndex],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+          ),
+          child: Center(
+            child: Icon(
+              PhosphorIconsFill.fileText,
+              color: iconColors[colorIndex],
+              size: 18,
+            ),
+          ),
+        ),
+        title: Text(
+          quiz.title,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          quiz.description ?? 'No description',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.grey.shade700,
+            fontSize: 11,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: InkWell(
+          onTap: () {
+            // Handle play quiz
+            context.push('/quiz/${quiz.id}');
+          },
+          borderRadius: BorderRadius.circular(50),
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+            ),
+            child: Icon(
+              PhosphorIconsFill.play,
+              color: iconColors[colorIndex],
+              size: 18,
+            ),
+          ),
+        ),
+        onTap: () {
+          context.push('/quiz/${quiz.id}');
+        },
+      ),
+    );
+  }
+}
+
+class DashboardAppBar extends StatelessWidget {
+  const DashboardAppBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBar(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      toolbarHeight: 60.0, // Reduced from 70.0
+      pinned: true,
+      elevation: 0,
+      centerTitle: false,
+      title: Text(
+        'DeltaMind',
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: 22.0, // Smaller font size
+        ),
+      ),
+      actions: const [ProfileAvatar()],
+    );
+  }
+}
+
+class DashboardGreeting extends ConsumerWidget {
+  const DashboardGreeting({super.key, this.todaysQuestion});
+
+  final String? todaysQuestion;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.user;
+    final greeting = _getGreeting();
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -158,205 +599,258 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.waving_hand, color: AppColors.primary, size: 32),
+                CircleAvatar(
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  radius: 18,
+                  child: Icon(
+                    PhosphorIconsFill.user,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Welcome back, ${user?.email?.split('@').first ?? 'User'}!',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        greeting,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        'Hello, ${user?.email?.split('@').first ?? 'User'}',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Ready to train your brain today?',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () => context.push(AppRoutes.createQuiz),
-              child: const Text('Create New Quiz'),
-            ),
+            if (todaysQuestion != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Today\'s question:',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                todaysQuestion!,
+                style: Theme.of(context).textTheme.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  /// Build quiz history statistics
-  Widget _buildHistoryStats() {
-    final totalQuizzes = _quizHistoryStats['totalQuizzes'] ?? 0;
-    final completedToday = _quizHistoryStats['completedToday'] ?? 0;
+  String _getGreeting() {
+    // Implement your logic to determine the greeting based on the current time
+    return 'Good morning';
+  }
+}
+
+class StatsCard extends StatelessWidget {
+  const StatsCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color.withOpacity(0.5)),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, color.withOpacity(0.05)],
+            ),
+          ),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withOpacity(0.3)),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: color.withOpacity(0.9),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class YourStats extends ConsumerWidget {
+  const YourStats({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // For now, use default values until we can properly connect with the stats
+    const quizCounter = 0;
+    const totalScore = 0;
+    const learningHours = 0.0;
+    const daysActive = 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Quiz History', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem(
-                      'Total Quizzes',
-                      totalQuizzes.toString(),
-                      Icons.list,
-                    ),
-                    _buildStatItem(
-                      'Completed Today',
-                      completedToday.toString(),
-                      Icons.check,
-                    ),
-                    _buildStatItem(
-                      'This Week',
-                      (_quizHistoryStats['weekly'] ?? 0).toString(),
-                      Icons.calendar_today,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton(
-                  onPressed:
-                      completedToday > 0
-                          ? () {
-                            context.push(AppRoutes.history);
-                          }
-                          : null,
-                  child: Text(
-                    completedToday > 0
-                        ? 'Review $completedToday Quizzes'
-                        : 'No Quizzes Completed',
-                  ),
-                ),
-              ],
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Text(
+            'Your Stats',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  /// Build a statistic item
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.primary),
-        const SizedBox(height: 8),
-        Text(value, style: Theme.of(context).textTheme.headlineSmall),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
-  }
-
-  /// Build recent quizzes list
-  Widget _buildRecentQuizzes() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _recentQuizzes.length,
-      itemBuilder: (context, index) {
-        final quiz = _recentQuizzes[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            title: Text(quiz.title),
-            subtitle: Text(
-              'Type: ${quiz.quizType} • Difficulty: ${quiz.difficulty}',
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // Navigate to quiz details page
-              context.go('/quiz/${quiz.id}');
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  /// Build empty quizzes message
-  Widget _buildEmptyQuizzes() {
-    return SizedBox(
-      height: 120,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.2,
           children: [
-            Text(
-              'No quizzes created yet',
-              style: Theme.of(context).textTheme.bodyLarge,
+            StatsCard(
+              title: 'Quizzes Completed',
+              value: quizCounter?.toString() ?? '0',
+              icon: PhosphorIconsFill.checkSquare,
+              color: Colors.green,
+              onTap: () => context.push(AppRoutes.history),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => context.push(AppRoutes.createQuiz),
-              child: const Text('Create Your First Quiz'),
+            StatsCard(
+              title: 'Total Score',
+              value: totalScore?.toString() ?? '0',
+              icon: PhosphorIconsFill.star,
+              color: Colors.amber.shade700,
+              onTap: () => context.push(AppRoutes.history),
+            ),
+            StatsCard(
+              title: 'Learning Hours',
+              value: '${learningHours?.toStringAsFixed(1) ?? '0'}h',
+              icon: PhosphorIconsFill.lightbulb,
+              color: Colors.blue,
+              onTap: () => context.push(AppRoutes.history),
+            ),
+            StatsCard(
+              title: 'Days Active',
+              value: daysActive?.toString() ?? '0',
+              icon: PhosphorIconsFill.calendar,
+              color: Colors.purple,
+              onTap: () => context.push(AppRoutes.achievements),
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+// Update the NavBar if it exists in this file
+class CustomBottomNavigationBar extends StatelessWidget {
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  final int currentIndex;
+  final Function(int) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
-    );
-  }
-
-  /// Build quick actions
-  Widget _buildQuickActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildQuickAction(
-          'Create Quiz',
-          Icons.add_circle,
-          AppColors.primary,
-          () => context.push(AppRoutes.createQuiz),
-        ),
-        _buildQuickAction(
-          'Browse Quizzes',
-          Icons.list,
-          AppColors.secondary,
-          () => context.push(AppRoutes.quizList),
-        ),
-        _buildQuickAction(
-          'My Profile',
-          Icons.person,
-          AppColors.accent,
-          () => context.push(AppRoutes.profile),
-        ),
-      ],
-    );
-  }
-
-  /// Build quick action button
-  Widget _buildQuickAction(
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: color),
-            ),
-          ],
-        ),
+      child: NavigationBar(
+        onDestinationSelected: onTap,
+        selectedIndex: currentIndex,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        height: 65,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(PhosphorIconsFill.house),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(PhosphorIconsFill.books),
+            label: 'Learn',
+          ),
+          NavigationDestination(
+            icon: Icon(PhosphorIconsFill.lightningSlash),
+            label: 'Quizzes',
+          ),
+          NavigationDestination(
+            icon: Icon(PhosphorIconsFill.trophy),
+            label: 'Achievements',
+          ),
+        ],
       ),
     );
   }

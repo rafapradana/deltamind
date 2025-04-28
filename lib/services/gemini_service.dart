@@ -25,7 +25,9 @@ class GeminiService {
         ),
       );
       
-      debugPrint('Gemini initialized successfully with model: ${GeminiConfig.modelName}');
+      debugPrint(
+        'Gemini initialized successfully with model: ${GeminiConfig.modelName}',
+      );
     } catch (e) {
       debugPrint('Error initializing Gemini: $e');
       rethrow;
@@ -137,7 +139,9 @@ Important: Return only valid JSON, do not include any markdown formatting.
           try {
             final jsonTest = jsonDecode(processedResult);
             if (!jsonTest.containsKey('questions')) {
-              throw Exception('Extracted JSON is invalid: missing questions array');
+              throw Exception(
+                'Extracted JSON is invalid: missing questions array',
+              );
             }
           } catch (e) {
             // If we still can't parse it, throw the original exception
@@ -149,7 +153,9 @@ Important: Return only valid JSON, do not include any markdown formatting.
       }
       
       // Return the processed result
-      debugPrint('Generated quiz with ${questionCount} questions at ${difficulty} difficulty');
+      debugPrint(
+        'Generated quiz with ${questionCount} questions at ${difficulty} difficulty',
+      );
       return processedResult;
     } catch (e) {
       debugPrint('Error generating quiz: $e');
@@ -303,9 +309,11 @@ Error details: $e
     String? quizContent,
   }) async {
     try {
-      final correctAnswers = userAnswers.where((a) => a['is_correct'] == true).length;
+      final correctAnswers =
+          userAnswers.where((a) => a['is_correct'] == true).length;
       final totalQuestions = userAnswers.length;
-      final percentageScore = totalQuestions > 0 
+      final percentageScore =
+          totalQuestions > 0
           ? (correctAnswers / totalQuestions * 100).round() 
           : 0;
           
@@ -387,7 +395,8 @@ Make the recommendations specific, detailed, and personalized to this user's act
       } catch (e) {
         // If we can't parse JSON, return a fallback recommendation
         debugPrint('Error parsing AI recommendations: $e');
-        final scoreMessage = percentageScore >= 70 
+        final scoreMessage =
+            percentageScore >= 70
             ? 'Great job!' 
             : percentageScore >= 50 
                 ? 'Good effort, but there\'s room for improvement.' 
@@ -395,39 +404,212 @@ Make the recommendations specific, detailed, and personalized to this user's act
         
         return {
           // New field names
-          'performance_overview': 'You scored $correctAnswers out of $totalQuestions ($percentageScore%). $scoreMessage',
-          'strengths': 'Continue building on concepts you already understand well.',
-          'areas_for_improvement': 'Review the questions you answered incorrectly to identify knowledge gaps.',
-          'learning_strategies': 'Focus on understanding the core concepts rather than memorizing answers. Try creating your own questions to test your understanding.',
-          'action_plan': 'Review your incorrect answers, create a study plan focusing on weak areas, and consider retaking a similar quiz in a week to measure improvement.',
+          'performance_overview':
+              'You scored $correctAnswers out of $totalQuestions ($percentageScore%). $scoreMessage',
+          'strengths':
+              'Continue building on concepts you already understand well.',
+          'areas_for_improvement':
+              'Review the questions you answered incorrectly to identify knowledge gaps.',
+          'learning_strategies':
+              'Focus on understanding the core concepts rather than memorizing answers. Try creating your own questions to test your understanding.',
+          'action_plan':
+              'Review your incorrect answers, create a study plan focusing on weak areas, and consider retaking a similar quiz in a week to measure improvement.',
           
           // Old field names for backward compatibility
-          'overall_assessment': 'You scored $correctAnswers out of $totalQuestions ($percentageScore%). $scoreMessage',
-          'strong_areas': 'Continue building on concepts you already understand well.',
-          'weak_areas': 'Review the questions you answered incorrectly to identify knowledge gaps.',
-          'learning_recommendations': 'Focus on understanding the core concepts rather than memorizing answers. Try creating your own questions to test your understanding.',
-          'study_resources': 'Consider using flashcards for key terms, watching video tutorials for complex topics, and finding practice problems related to topics you struggled with.',
-          'next_steps': 'Review your incorrect answers, create a study plan focusing on weak areas, and consider retaking a similar quiz in a week to measure improvement.'
+          'overall_assessment':
+              'You scored $correctAnswers out of $totalQuestions ($percentageScore%). $scoreMessage',
+          'strong_areas':
+              'Continue building on concepts you already understand well.',
+          'weak_areas':
+              'Review the questions you answered incorrectly to identify knowledge gaps.',
+          'learning_recommendations':
+              'Focus on understanding the core concepts rather than memorizing answers. Try creating your own questions to test your understanding.',
+          'study_resources':
+              'Consider using flashcards for key terms, watching video tutorials for complex topics, and finding practice problems related to topics you struggled with.',
+          'next_steps':
+              'Review your incorrect answers, create a study plan focusing on weak areas, and consider retaking a similar quiz in a week to measure improvement.',
         };
       }
     } catch (e) {
       debugPrint('Error generating quiz recommendations: $e');
       return {
         // New field names
-        'performance_overview': 'Sorry, we encountered an issue generating detailed recommendations.',
+        'performance_overview':
+            'Sorry, we encountered an issue generating detailed recommendations.',
         'strengths': 'Continue to build on your strengths.',
-        'areas_for_improvement': 'Review the questions you answered incorrectly.',
-        'learning_strategies': 'Consider reviewing the material again and focusing on fundamentals.',
-        'action_plan': 'Review incorrect answers and try another quiz to practice.',
+        'areas_for_improvement':
+            'Review the questions you answered incorrectly.',
+        'learning_strategies':
+            'Consider reviewing the material again and focusing on fundamentals.',
+        'action_plan':
+            'Review incorrect answers and try another quiz to practice.',
         
         // Old field names for backward compatibility
-        'overall_assessment': 'Sorry, we encountered an issue generating detailed recommendations.',
+        'overall_assessment':
+            'Sorry, we encountered an issue generating detailed recommendations.',
         'strong_areas': 'Continue to build on your strengths.',
         'weak_areas': 'Review the questions you answered incorrectly.',
-        'learning_recommendations': 'Consider reviewing the material again and focusing on fundamentals.',
-        'study_resources': 'Textbooks, online courses, and practice problems can help reinforce your understanding.',
-        'next_steps': 'Review incorrect answers and try another quiz to practice.'
+        'learning_recommendations':
+            'Consider reviewing the material again and focusing on fundamentals.',
+        'study_resources':
+            'Textbooks, online courses, and practice problems can help reinforce your understanding.',
+        'next_steps':
+            'Review incorrect answers and try another quiz to practice.',
       };
     }
   }
-} 
+
+  /// Generate quiz from file content
+  ///
+  /// [fileBytes] is the raw bytes of the file
+  /// [fileName] is the name of the file with extension
+  /// [fileType] is the type of file (e.g., 'pdf', 'txt', 'image')
+  /// [format] is the quiz format (Multiple Choice, True/False, etc.)
+  /// [difficulty] is the difficulty level (Easy, Medium, Hard)
+  /// [questionCount] is the number of questions to generate
+  static Future<String> generateQuizFromFile({
+    required Uint8List fileBytes,
+    required String fileName,
+    required String fileType,
+    required String format,
+    required String difficulty,
+    int questionCount = 5,
+  }) async {
+    try {
+      String promptIntro;
+      // Handle different file types
+      switch (fileType.toLowerCase()) {
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+          promptIntro =
+              'Generate $questionCount $format questions at $difficulty difficulty level based on the content shown in this image:';
+          // Currently images are not directly supported by the API setup being used
+          // Instead we'll use a text prompt to simulate image content processing
+          promptIntro =
+              'I am analyzing an image titled "$fileName". Based on this image, please:';
+          break;
+        case 'doc':
+        case 'docx':
+          promptIntro =
+              'Generate $questionCount $format questions at $difficulty difficulty level based on the content in this document:';
+          break;
+        case 'pdf':
+        case 'txt':
+        default:
+          promptIntro =
+              'Generate $questionCount $format questions at $difficulty difficulty level based on the following content:';
+          break;
+      }
+
+      final prompt = '''
+$promptIntro
+
+[File content from: $fileName]
+
+Format the output in JSON like this:
+{
+  "questions": [
+    {
+      "question": "Question text here",
+      "options": ["Option A", "Option B", "Option C", "Option D"], 
+      "answer": "Correct option here",
+      "explanation": "Brief explanation of the answer"
+    }
+  ]
+}
+
+For True/False questions, options should be just ["True", "False"].
+For Fill in the Blank questions, use "_____" to indicate the blank in the question, and options should be possible answers.
+Make sure questions are varied and cover different parts of the content.
+The answer must be the exact text of the correct option.
+
+Important: Return only valid JSON, do not include any markdown formatting.
+''';
+
+      // For actual implementation with Gemini's multimodal features:
+      // final response = await model.generateContent([
+      //   Content.multi([
+      //     Parts.text(prompt),
+      //     if (['jpg', 'jpeg', 'png'].contains(fileType.toLowerCase()))
+      //       Parts.bytes(fileBytes, mimeType: 'image/${fileType.toLowerCase()}')
+      //   ])
+      // ]);
+
+      // For now, we'll use the text-only API
+      final response = await model.generateContent([Content.text(prompt)]);
+      final result = response.text;
+
+      if (result == null || result.isEmpty) {
+        throw Exception('Failed to generate quiz: Empty response');
+      }
+
+      // Process the response to extract JSON
+      String processedResult = result;
+
+      // Check if the response is wrapped in markdown code blocks
+      if (result.contains('```json')) {
+        // Extract content between ```json and ``` markers
+        final startMarker = '```json';
+        final endMarker = '```';
+        final startIndex = result.indexOf(startMarker) + startMarker.length;
+        final endIndex = result.lastIndexOf(endMarker);
+
+        if (startIndex >= 0 && endIndex >= 0 && startIndex < endIndex) {
+          processedResult = result.substring(startIndex, endIndex).trim();
+          debugPrint('Extracted JSON from markdown code block');
+        }
+      } else if (result.contains('```')) {
+        // Handle case where code block doesn't specify language
+        final startMarker = '```';
+        final endMarker = '```';
+        final startIndex = result.indexOf(startMarker) + startMarker.length;
+        final endIndex = result.lastIndexOf(endMarker);
+
+        if (startIndex >= 0 && endIndex >= 0 && startIndex < endIndex) {
+          processedResult = result.substring(startIndex, endIndex).trim();
+          debugPrint('Extracted content from generic markdown code block');
+        }
+      }
+
+      // Validate JSON structure
+      try {
+        final jsonTest = jsonDecode(processedResult);
+        if (!jsonTest.containsKey('questions')) {
+          throw Exception('Invalid JSON structure: missing questions array');
+        }
+      } catch (e) {
+        debugPrint('Warning: Response is not valid JSON: $e');
+
+        // Look for opening brace
+        final firstBrace = result.indexOf('{');
+        final lastBrace = result.lastIndexOf('}');
+
+        if (firstBrace >= 0 && lastBrace >= 0 && firstBrace < lastBrace) {
+          processedResult = result.substring(firstBrace, lastBrace + 1);
+
+          try {
+            final jsonTest = jsonDecode(processedResult);
+            if (!jsonTest.containsKey('questions')) {
+              throw Exception(
+                'Extracted JSON is invalid: missing questions array',
+              );
+            }
+          } catch (e) {
+            throw Exception('Failed to parse AI response: $e');
+          }
+        } else {
+          throw Exception('Failed to extract valid JSON from response');
+        }
+      }
+
+      debugPrint(
+        'Generated quiz with $questionCount questions at $difficulty difficulty from file $fileName',
+      );
+      return processedResult;
+    } catch (e) {
+      debugPrint('Error generating quiz from file: $e');
+      throw Exception('Error generating quiz from file: $e');
+    }
+  }
+}

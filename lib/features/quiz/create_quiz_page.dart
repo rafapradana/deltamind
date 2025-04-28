@@ -44,12 +44,14 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['txt', 'pdf'],
-        withData: true, // Make sure to get bytes for web platform
+        allowedExtensions: ['txt', 'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+        withData: true, // Ensures bytes are available for web platform
       );
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
+
+        // Check file size
         if (file.size > maxFileSize) {
           setState(() {
             _errorMessage = 'File is too large. Maximum size is 5MB.';
@@ -57,25 +59,46 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
           return;
         }
 
-        final String fileExtension = file.name.split('.').last.toLowerCase();
-        if (fileExtension != 'txt' && fileExtension != 'pdf') {
+        // Validate if we have bytes for web platform
+        if (kIsWeb && file.bytes == null) {
           setState(() {
-            _errorMessage = 'Only .txt and .pdf files are supported.';
+            _errorMessage = 'Error: Cannot access file data on web platform.';
+          });
+          return;
+        }
+
+        final String fileExtension = file.name.split('.').last.toLowerCase();
+        if (![
+          'txt',
+          'pdf',
+          'doc',
+          'docx',
+          'jpg',
+          'jpeg',
+          'png',
+        ].contains(fileExtension)) {
+          setState(() {
+            _errorMessage =
+                'Unsupported file format. Please upload a text, document, PDF, or image file.';
           });
           return;
         }
 
         setState(() {
-          _filePath = file.path; // Will be null on web
           _fileName = file.name;
-          _fileBytes = file.bytes; // Store the bytes for web
+          _fileBytes = file.bytes; // This works on all platforms including web
+          // Only set path if not on web platform
+          if (!kIsWeb) {
+            _filePath = file.path;
+          }
           _errorMessage = null;
         });
 
         // Update the UI to show the file is ready for processing
         setState(() {
-          _contentController.text = 'File uploaded: $_fileName\n\n'
-              '${fileExtension == 'pdf' ? 'PDF file' : 'Text file'} ready for processing.\n\n'
+          _contentController.text =
+              'File uploaded: $_fileName\n\n'
+              '${_getFileTypeDescription(fileExtension)} ready for processing.\n\n'
               'Click "Generate Quiz" to create a quiz from this file content.';
         });
       }
@@ -83,6 +106,24 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
       setState(() {
         _errorMessage = 'Error picking file: $e';
       });
+    }
+  }
+
+  String _getFileTypeDescription(String extension) {
+    switch (extension) {
+      case 'pdf':
+        return 'PDF document';
+      case 'doc':
+      case 'docx':
+        return 'Word document';
+      case 'txt':
+        return 'Text file';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return 'Image file';
+      default:
+        return 'File';
     }
   }
 
@@ -100,38 +141,43 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
     });
 
     try {
-      // Process file bytes if available (for web platform or mobile)
+      // Process file if available
       if (_fileBytes != null && _fileName != null) {
         final String fileExtension = _fileName!.split('.').last.toLowerCase();
-        
+
         // Update loading state with file processing info
         setState(() {
-          _contentController.text = 'Processing ${fileExtension.toUpperCase()} file...';
+          _contentController.text =
+              'Processing ${fileExtension.toUpperCase()} file...';
         });
-        
+
         if (fileExtension == 'pdf') {
           try {
-            // Load PDF document from bytes
+            // Load PDF document from bytes (works on all platforms)
             final PdfDocument document = PdfDocument(inputBytes: _fileBytes);
             final PdfTextExtractor extractor = PdfTextExtractor(document);
-            
+
             // Extract text from all pages
             final buffer = StringBuffer();
             for (int i = 1; i <= document.pages.count; i++) {
               setState(() {
-                _contentController.text = 'Processing PDF page $i of ${document.pages.count}...';
+                _contentController.text =
+                    'Processing PDF page $i of ${document.pages.count}...';
               });
-              
-              String text = extractor.extractText(startPageIndex: i - 1, endPageIndex: i - 1);
+
+              String text = extractor.extractText(
+                startPageIndex: i - 1,
+                endPageIndex: i - 1,
+              );
               buffer.write(text);
               buffer.write('\n\n');
             }
-            
+
             // Update text content
             setState(() {
               _contentController.text = buffer.toString();
             });
-            
+
             // Dispose the document
             document.dispose();
           } catch (e) {
@@ -143,7 +189,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
           }
         } else if (fileExtension == 'txt') {
           try {
-            // Always use the file bytes for consistent behavior across platforms
+            // Use file bytes for consistent behavior across platforms
             final fileContent = utf8.decode(_fileBytes!);
             setState(() {
               _contentController.text = fileContent;
@@ -155,6 +201,56 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
             });
             return;
           }
+        } else if ([
+          'doc',
+          'docx',
+          'jpg',
+          'jpeg',
+          'png',
+        ].contains(fileExtension)) {
+          // For complex file types like documents and images, use the specialized method
+          // Process directly with Gemini
+
+          // Extract a title from the filename
+          final title =
+              _fileName!.split('.').first.length > 3
+                  ? _fileName!.split('.').first
+                  : 'Quiz on ${DateTime.now().toString().substring(0, 10)}';
+
+          final sanitizedTitle =
+              title.length > 50 ? title.substring(0, 50) : title;
+
+          // Use the Riverpod controller to generate the quiz directly from file
+          final quizController = ref.read(quizControllerProvider.notifier);
+
+          final quiz = await quizController.generateQuizFromFile(
+            title: sanitizedTitle,
+            description: 'Generated quiz based on ${_fileName!}',
+            quizType: _selectedQuizType,
+            difficulty: _selectedDifficulty,
+            fileBytes: _fileBytes!,
+            fileName: _fileName!,
+            questionCount: _questionCount,
+          );
+
+          if (!mounted) return;
+
+          if (quiz != null) {
+            // Show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Quiz generated successfully!'),
+                backgroundColor: AppTheme.successColor,
+              ),
+            );
+
+            // Navigate to the quiz details page
+            Navigator.of(context).pop();
+            context.go('/quiz/${quiz.id}');
+            return; // Exit early as we've already handled this case
+          } else {
+            throw Exception('Failed to generate quiz from file');
+          }
         } else {
           setState(() {
             _errorMessage = 'Unsupported file type: $fileExtension';
@@ -163,21 +259,24 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
           return;
         }
       }
-      
+
+      // If we get here, we're processing text content
       // Extract a title from the first line of the content
       final contentLines = _contentController.text.split('\n');
-      final title = contentLines.first.isNotEmpty 
-          ? contentLines.first.trim() 
-          : 'Quiz on ${DateTime.now().toString().substring(0, 10)}';
-      
+      final title =
+          contentLines.first.isNotEmpty
+              ? contentLines.first.trim()
+              : 'Quiz on ${DateTime.now().toString().substring(0, 10)}';
+
       // Update UI to show we're generating the quiz
       setState(() {
-        _contentController.text = '${_contentController.text}\n\nGenerating quiz questions...';
+        _contentController.text =
+            '${_contentController.text}\n\nGenerating quiz questions...';
       });
-      
+
       // Use the Riverpod controller to generate the quiz
       final quizController = ref.read(quizControllerProvider.notifier);
-      
+
       final quiz = await quizController.generateQuiz(
         title: title.length > 50 ? title.substring(0, 50) : title,
         description: 'Generated quiz based on provided content',
@@ -186,9 +285,9 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
         content: _contentController.text,
         questionCount: _questionCount,
       );
-      
+
       if (!mounted) return;
-      
+
       if (quiz != null) {
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -197,7 +296,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
             backgroundColor: AppTheme.successColor,
           ),
         );
-        
+
         // Navigate to the quiz details page
         Navigator.of(context).pop();
         context.go('/quiz/${quiz.id}');
@@ -221,19 +320,14 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Quiz'),
-      ),
+      appBar: AppBar(title: const Text('Create Quiz')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Instructions
-            Text(
-              'Create a new quiz',
-              style: AppTheme.headingMedium,
-            ),
+            Text('Create a new quiz', style: AppTheme.headingMedium),
             const SizedBox(height: 8),
             Text(
               'Enter your study material below or upload a file to generate questions.',
@@ -251,9 +345,12 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
               controller: _contentController,
               maxLines: 8,
               decoration: InputDecoration(
-                hintText: 'Paste your notes, text, or learning material here...',
+                hintText:
+                    'Paste your notes, text, or learning material here...',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+                  borderRadius: BorderRadius.circular(
+                    AppTheme.borderRadiusMedium,
+                  ),
                 ),
               ),
             ),
@@ -274,7 +371,9 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
                   Expanded(
                     child: Text(
                       _fileName!,
-                      style: AppTheme.smallText.copyWith(color: Colors.grey[600]),
+                      style: AppTheme.smallText.copyWith(
+                        color: Colors.grey[600],
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -305,24 +404,25 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
               value: _selectedQuizType,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+                  borderRadius: BorderRadius.circular(
+                    AppTheme.borderRadiusMedium,
+                  ),
                 ),
               ),
-              items: AppConstants.quizTypes.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(type),
-                );
-              }).toList(),
-              onChanged: _isLoading
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedQuizType = value;
-                        });
-                      }
-                    },
+              items:
+                  AppConstants.quizTypes.map((type) {
+                    return DropdownMenuItem(value: type, child: Text(type));
+                  }).toList(),
+              onChanged:
+                  _isLoading
+                      ? null
+                      : (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedQuizType = value;
+                          });
+                        }
+                      },
             ),
             const SizedBox(height: 16),
 
@@ -336,24 +436,28 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
               value: _selectedDifficulty,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+                  borderRadius: BorderRadius.circular(
+                    AppTheme.borderRadiusMedium,
+                  ),
                 ),
               ),
-              items: AppConstants.quizDifficulties.map((difficulty) {
-                return DropdownMenuItem(
-                  value: difficulty,
-                  child: Text(difficulty),
-                );
-              }).toList(),
-              onChanged: _isLoading
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedDifficulty = value;
-                        });
-                      }
-                    },
+              items:
+                  AppConstants.quizDifficulties.map((difficulty) {
+                    return DropdownMenuItem(
+                      value: difficulty,
+                      child: Text(difficulty),
+                    );
+                  }).toList(),
+              onChanged:
+                  _isLoading
+                      ? null
+                      : (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedDifficulty = value;
+                          });
+                        }
+                      },
             ),
             const SizedBox(height: 16),
 
@@ -372,20 +476,26 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
                     max: 10,
                     divisions: 7,
                     label: _questionCount.toString(),
-                    onChanged: _isLoading
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _questionCount = value.round();
-                            });
-                          },
+                    onChanged:
+                        _isLoading
+                            ? null
+                            : (value) {
+                              setState(() {
+                                _questionCount = value.round();
+                              });
+                            },
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppTheme.borderColor),
-                    borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
+                    borderRadius: BorderRadius.circular(
+                      AppTheme.borderRadiusSmall,
+                    ),
                   ),
                   child: Text(
                     _questionCount.toString(),
@@ -402,8 +512,12 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
-                  border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(
+                    AppTheme.borderRadiusSmall,
+                  ),
+                  border: Border.all(
+                    color: AppTheme.errorColor.withOpacity(0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -426,23 +540,24 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
               height: 50,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _generateQuiz,
-                child: _isLoading
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                child:
+                    _isLoading
+                        ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text('Generating Quiz...'),
-                        ],
-                      )
-                    : const Text('Generate Quiz'),
+                            const SizedBox(width: 12),
+                            const Text('Generating Quiz...'),
+                          ],
+                        )
+                        : const Text('Generate Quiz'),
               ),
             ),
           ],
@@ -450,4 +565,4 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
       ),
     );
   }
-} 
+}
