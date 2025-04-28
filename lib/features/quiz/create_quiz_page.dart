@@ -1,4 +1,5 @@
 import 'package:deltamind/core/constants/app_constants.dart';
+import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/core/theme/app_theme.dart';
 import 'package:deltamind/features/quiz/quiz_controller.dart';
 import 'package:deltamind/services/gemini_service.dart';
@@ -22,6 +23,8 @@ class CreateQuizPage extends ConsumerStatefulWidget {
 }
 
 class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   String _selectedQuizType = AppConstants.quizTypes.first;
   String _selectedDifficulty = AppConstants.quizDifficulties.first;
@@ -36,6 +39,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
 
   @override
   void dispose() {
+    _titleController.dispose();
     _contentController.dispose();
     super.dispose();
   }
@@ -84,6 +88,12 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
           return;
         }
 
+        // Set a suggested title based on the file name
+        final fileNameWithoutExtension = file.name.split('.').first;
+        if (_titleController.text.isEmpty) {
+          _titleController.text = fileNameWithoutExtension.replaceAll('_', ' ');
+        }
+
         setState(() {
           _fileName = file.name;
           _fileBytes = file.bytes; // This works on all platforms including web
@@ -128,6 +138,10 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
   }
 
   Future<void> _generateQuiz() async {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
     if (_contentController.text.trim().isEmpty && _fileBytes == null) {
       setState(() {
         _errorMessage = 'Please enter some content or upload a file';
@@ -211,20 +225,14 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
           // For complex file types like documents and images, use the specialized method
           // Process directly with Gemini
 
-          // Extract a title from the filename
-          final title =
-              _fileName!.split('.').first.length > 3
-                  ? _fileName!.split('.').first
-                  : 'Quiz on ${DateTime.now().toString().substring(0, 10)}';
-
-          final sanitizedTitle =
-              title.length > 50 ? title.substring(0, 50) : title;
+          // Use the title from the title field
+          final title = _titleController.text.trim();
 
           // Use the Riverpod controller to generate the quiz directly from file
           final quizController = ref.read(quizControllerProvider.notifier);
 
           final quiz = await quizController.generateQuizFromFile(
-            title: sanitizedTitle,
+            title: title,
             description: 'Generated quiz based on ${_fileName!}',
             quizType: _selectedQuizType,
             difficulty: _selectedDifficulty,
@@ -261,12 +269,8 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
       }
 
       // If we get here, we're processing text content
-      // Extract a title from the first line of the content
-      final contentLines = _contentController.text.split('\n');
-      final title =
-          contentLines.first.isNotEmpty
-              ? contentLines.first.trim()
-              : 'Quiz on ${DateTime.now().toString().substring(0, 10)}';
+      // Use the title from the title field
+      final title = _titleController.text.trim();
 
       // Update UI to show we're generating the quiz
       setState(() {
@@ -278,7 +282,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
       final quizController = ref.read(quizControllerProvider.notifier);
 
       final quiz = await quizController.generateQuiz(
-        title: title.length > 50 ? title.substring(0, 50) : title,
+        title: title,
         description: 'Generated quiz based on provided content',
         quizType: _selectedQuizType,
         difficulty: _selectedDifficulty,
@@ -320,247 +324,461 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Quiz')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Instructions
-            Text('Create a new quiz', style: AppTheme.headingMedium),
-            const SizedBox(height: 8),
-            Text(
-              'Enter your study material below or upload a file to generate questions.',
-              style: AppTheme.bodyText.copyWith(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 24),
-
-            // Content input
-            Text(
-              'Study Material',
-              style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _contentController,
-              maxLines: 8,
-              decoration: InputDecoration(
-                hintText:
-                    'Paste your notes, text, or learning material here...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppTheme.borderRadiusMedium,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Upload button
-            OutlinedButton.icon(
-              onPressed: _isLoading ? null : _pickFile,
-              icon: Icon(PhosphorIcons.upload()),
-              label: Text(_fileName != null ? 'Change File' : 'Upload File'),
-            ),
-            if (_fileName != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(PhosphorIcons.file(), size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _fileName!,
-                      style: AppTheme.smallText.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(PhosphorIcons.x()),
-                    onPressed: () {
-                      setState(() {
-                        _filePath = null;
-                        _fileName = null;
-                      });
-                    },
-                    iconSize: 16,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 24),
-
-            // Quiz type selection
-            Text(
-              'Quiz Type',
-              style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedQuizType,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppTheme.borderRadiusMedium,
-                  ),
-                ),
-              ),
-              items:
-                  AppConstants.quizTypes.map((type) {
-                    return DropdownMenuItem(value: type, child: Text(type));
-                  }).toList(),
-              onChanged:
-                  _isLoading
-                      ? null
-                      : (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedQuizType = value;
-                          });
-                        }
-                      },
-            ),
-            const SizedBox(height: 16),
-
-            // Difficulty selection
-            Text(
-              'Difficulty',
-              style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedDifficulty,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppTheme.borderRadiusMedium,
-                  ),
-                ),
-              ),
-              items:
-                  AppConstants.quizDifficulties.map((difficulty) {
-                    return DropdownMenuItem(
-                      value: difficulty,
-                      child: Text(difficulty),
-                    );
-                  }).toList(),
-              onChanged:
-                  _isLoading
-                      ? null
-                      : (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedDifficulty = value;
-                          });
-                        }
-                      },
-            ),
-            const SizedBox(height: 16),
-
-            // Question count
-            Text(
-              'Number of Questions',
-              style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: _questionCount.toDouble(),
-                    min: 3,
-                    max: 10,
-                    divisions: 7,
-                    label: _questionCount.toString(),
-                    onChanged:
-                        _isLoading
-                            ? null
-                            : (value) {
-                              setState(() {
-                                _questionCount = value.round();
-                              });
-                            },
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppTheme.borderColor),
-                    borderRadius: BorderRadius.circular(
-                      AppTheme.borderRadiusSmall,
-                    ),
-                  ),
-                  child: Text(
-                    _questionCount.toString(),
-                    style: AppTheme.subtitle,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Error message
-            if (_errorMessage != null) ...[
+      appBar: AppBar(
+        title: const Text('Create Quiz'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header section
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(
-                    AppTheme.borderRadiusSmall,
-                  ),
-                  border: Border.all(
-                    color: AppTheme.errorColor.withOpacity(0.3),
-                  ),
+                  color: AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(PhosphorIcons.warning(), color: AppTheme.errorColor),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(color: AppTheme.errorColor),
+                    Row(
+                      children: [
+                        Icon(
+                          PhosphorIcons.sparkle(),
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'AI Quiz Generator',
+                          style: AppTheme.headingMedium.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create a new quiz by entering your study material or uploading a file. Our AI will generate quiz questions for you.',
+                      style: AppTheme.bodyText.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-            ],
 
-            // Generate button
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _generateQuiz,
-                child:
-                    _isLoading
-                        ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+              // Quiz title field
+              Text(
+                'Quiz Title',
+                style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _titleController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a quiz title';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Enter a title for your quiz',
+                  filled: true,
+                  fillColor: Colors.white,
+                  prefixIcon: Icon(
+                    PhosphorIcons.textT(),
+                    color: AppColors.primary,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Settings card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.shadow.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          PhosphorIcons.gearSix(),
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Quiz Settings',
+                          style: AppTheme.subtitle.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Quiz type selection
+                    Text(
+                      'Quiz Type',
+                      style: AppTheme.smallText.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedQuizType,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: AppColors.primary.withOpacity(0.05),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items:
+                          AppConstants.quizTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                      onChanged:
+                          _isLoading
+                              ? null
+                              : (value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _selectedQuizType = value;
+                                  });
+                                }
+                              },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Difficulty selection
+                    Text(
+                      'Difficulty',
+                      style: AppTheme.smallText.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedDifficulty,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: AppColors.primary.withOpacity(0.05),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items:
+                          AppConstants.quizDifficulties.map((difficulty) {
+                            return DropdownMenuItem(
+                              value: difficulty,
+                              child: Text(difficulty),
+                            );
+                          }).toList(),
+                      onChanged:
+                          _isLoading
+                              ? null
+                              : (value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _selectedDifficulty = value;
+                                  });
+                                }
+                              },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Question count
+                    Text(
+                      'Number of Questions: $_questionCount',
+                      style: AppTheme.smallText.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SliderTheme(
+                      data: SliderThemeData(
+                        activeTrackColor: AppColors.primary,
+                        inactiveTrackColor: AppColors.primary.withOpacity(0.2),
+                        thumbColor: AppColors.primary,
+                        overlayColor: AppColors.primary.withOpacity(0.1),
+                        trackHeight: 4,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 8,
+                        ),
+                      ),
+                      child: Slider(
+                        value: _questionCount.toDouble(),
+                        min: 3,
+                        max: 10,
+                        divisions: 7,
+                        onChanged:
+                            _isLoading
+                                ? null
+                                : (value) {
+                                  setState(() {
+                                    _questionCount = value.round();
+                                  });
+                                },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Content section
+              Text(
+                'Study Material',
+                style: AppTheme.subtitle.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Enter your notes, text, or learning material, or upload a file.',
+                style: AppTheme.smallText.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Upload button and file indicator
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          PhosphorIcons.fileArrowUp(),
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'File Upload',
+                          style: AppTheme.subtitle.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _pickFile,
+                      icon: Icon(
+                        PhosphorIcons.upload(),
+                        color: AppColors.primary,
+                      ),
+                      label: Text(
+                        _fileName != null ? 'Change File' : 'Upload File',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    if (_fileName != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: Row(
                           children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                            Icon(
+                              PhosphorIcons.file(),
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _fileName!,
+                                style: AppTheme.smallText,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            const Text('Generating Quiz...'),
+                            IconButton(
+                              icon: Icon(
+                                PhosphorIcons.x(),
+                                color: AppColors.textSecondary,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _filePath = null;
+                                  _fileName = null;
+                                  _fileBytes = null;
+                                });
+                              },
+                              iconSize: 16,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
                           ],
-                        )
-                        : const Text('Generate Quiz'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              // Text content
+              TextField(
+                controller: _contentController,
+                maxLines: 8,
+                decoration: InputDecoration(
+                  hintText:
+                      'Paste your notes, text, or learning material here...',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Error message
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(PhosphorIcons.warning(), color: AppColors.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // Generate button
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _generateQuiz,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child:
+                      _isLoading
+                          ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text('Generating Quiz...'),
+                            ],
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('Generate Quiz'),
+                              const SizedBox(width: 8),
+                              Icon(PhosphorIcons.sparkle()),
+                            ],
+                          ),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

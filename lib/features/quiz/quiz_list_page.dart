@@ -31,7 +31,7 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
   /// Load quizzes from database
   Future<void> _loadQuizzes() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -39,8 +39,8 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
 
     try {
       // Use try-catch for the controller interaction
-    try {
-      await ref.read(quizControllerProvider.notifier).loadUserQuizzes();
+      try {
+        await ref.read(quizControllerProvider.notifier).loadUserQuizzes();
       } catch (e) {
         _safeHandleError('loading quizzes from controller', e);
         return;
@@ -50,9 +50,9 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
       return;
     } finally {
       if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -61,30 +61,29 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
   Future<void> _deleteQuiz(Quiz quiz) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Quiz'),
-        content: Text(
-          'Are you sure you want to delete "${quiz.title}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Quiz'),
+            content: Text(
+              'Are you sure you want to delete "${quiz.title}"? This action cannot be undone.',
             ),
-            child: const Text('Delete'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = true;
       });
@@ -106,10 +105,10 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
         _safeHandleError('deleting quiz', e);
       } finally {
         if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -130,22 +129,24 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
     // Use try-catch for the controller interaction
     List<Quiz> quizzes = [];
     try {
-    final quizState = ref.watch(quizControllerProvider);
-    _quizzes = quizState.userQuizzes;
+      final quizState = ref.watch(quizControllerProvider);
+      _quizzes = quizState.userQuizzes;
 
-    // Apply search filter
-    if (_searchQuery.isNotEmpty) {
-      _quizzes = _quizzes
-          .where((quiz) =>
-              quiz.title.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
-    }
+      // Apply search filter
+      if (_searchQuery.isNotEmpty) {
+        _quizzes =
+            _quizzes
+                .where(
+                  (quiz) => quiz.title.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ),
+                )
+                .toList();
+      }
 
-    // Apply type filter
-    if (_filter != 'All') {
-      _quizzes = _quizzes
-          .where((quiz) => quiz.quizType == _filter)
-          .toList();
+      // Apply type filter
+      if (_filter != 'All') {
+        _quizzes = _quizzes.where((quiz) => quiz.quizType == _filter).toList();
       }
     } catch (e) {
       debugPrint('Error watching quiz controller: $e');
@@ -185,7 +186,7 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
                   },
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Filter chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -204,13 +205,14 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
 
           // Quiz list
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _errorMessage != null
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _errorMessage != null
                     ? Center(child: Text(_errorMessage!))
                     : _quizzes.isEmpty
-                        ? _buildEmptyState()
-                        : _buildQuizList(),
+                    ? _buildEmptyState()
+                    : _buildQuizList(),
           ),
         ],
       ),
@@ -247,11 +249,7 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.quiz,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.quiz, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No quizzes found',
@@ -262,9 +260,9 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
             _searchQuery.isNotEmpty || _filter != 'All'
                 ? 'Try changing your search or filter'
                 : 'Create your first quiz to get started',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -289,6 +287,15 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
           final quiz = _quizzes[index];
           return Card(
             margin: const EdgeInsets.only(bottom: 16.0),
+            elevation: 1,
+            shadowColor: AppColors.shadow.withOpacity(0.2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: AppColors.primary.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
             child: InkWell(
               onTap: () {
                 // Navigate to quiz details page
@@ -311,38 +318,42 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
                           ),
                         ),
                         PopupMenuButton<String>(
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'take',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.play_arrow),
-                                  SizedBox(width: 8),
-                                  Text('Take Quiz'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit),
-                                  SizedBox(width: 8),
-                                  Text('Edit'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Delete', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
+                          itemBuilder:
+                              (context) => [
+                                const PopupMenuItem(
+                                  value: 'take',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.play_arrow),
+                                      SizedBox(width: 8),
+                                      Text('Take Quiz'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit),
+                                      SizedBox(width: 8),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                           onSelected: (value) {
                             switch (value) {
                               case 'take':
@@ -360,7 +371,8 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
                         ),
                       ],
                     ),
-                    if (quiz.description != null && quiz.description!.isNotEmpty)
+                    if (quiz.description != null &&
+                        quiz.description!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Text(
@@ -374,7 +386,7 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
                       children: [
                         _buildQuizChip(quiz.quizType, Icons.question_answer),
                         const SizedBox(width: 8),
-                        _buildQuizChip(quiz.difficulty, Icons.fitness_center),
+                        _buildDifficultyChip(quiz.difficulty),
                         const SizedBox(width: 8),
                         if (quiz.createdAt != null)
                           _buildQuizChip(
@@ -417,11 +429,54 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
         children: [
           Icon(icon, size: 16, color: AppColors.primary),
           const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 12, color: AppColors.primary)),
+        ],
+      ),
+    );
+  }
+
+  /// Build difficulty chip with color based on difficulty level
+  Widget _buildDifficultyChip(String difficulty) {
+    // Choose color based on difficulty
+    Color chipColor;
+    Color textColor = Colors.white;
+
+    switch (difficulty.toLowerCase()) {
+      case 'easy':
+        chipColor = Colors.green.shade600;
+        break;
+      case 'medium':
+        chipColor = Colors.orange.shade600;
+        break;
+      case 'hard':
+        chipColor = Colors.red.shade600;
+        break;
+      case 'expert':
+        chipColor = Colors.purple.shade600;
+        break;
+      default:
+        chipColor = AppColors.primary;
+        textColor = AppColors.primary;
+        return _buildQuizChip(difficulty, Icons.fitness_center);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: chipColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.fitness_center, size: 16, color: textColor),
+          const SizedBox(width: 4),
           Text(
-            label,
+            difficulty,
             style: TextStyle(
               fontSize: 12,
-              color: AppColors.primary,
+              color: textColor,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -433,4 +488,4 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
-} 
+}

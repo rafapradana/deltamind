@@ -9,6 +9,7 @@ import 'package:deltamind/features/profile/profile_page.dart';
 import 'package:deltamind/features/quiz/create_quiz_page.dart';
 import 'package:deltamind/features/quiz/quiz_list_page.dart';
 import 'package:deltamind/features/quiz/take_quiz_page.dart';
+import 'package:deltamind/features/splash/splash_screen.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,9 @@ import 'package:go_router/go_router.dart';
 class AppRoutes {
   /// Root route
   static const String root = '/';
+
+  /// Splash route
+  static const String splash = '/splash';
 
   /// Onboarding route
   static const String onboarding = '/onboarding';
@@ -54,7 +58,11 @@ class AppRoutes {
 
 /// App router configuration
 final List<GoRoute> appRoutes = [
-  GoRoute(path: AppRoutes.root, redirect: (_, __) => AppRoutes.onboarding),
+  GoRoute(path: AppRoutes.root, redirect: (_, __) => AppRoutes.splash),
+  GoRoute(
+    path: AppRoutes.splash,
+    builder: (context, state) => const SplashScreen(),
+  ),
   GoRoute(
     path: AppRoutes.onboarding,
     builder: (context, state) => const OnboardingPage(),

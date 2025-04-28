@@ -15,6 +15,7 @@ import 'package:deltamind/features/quiz/take_quiz_page.dart';
 import 'package:deltamind/features/reviews/reviews_page.dart';
 import 'package:deltamind/features/history/history_page.dart';
 import 'package:deltamind/features/history/quiz_review_detail_page.dart';
+import 'package:deltamind/features/splash/splash_screen.dart';
 import 'package:deltamind/services/gemini_service.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
@@ -24,7 +25,7 @@ import 'package:go_router/go_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize services
   try {
     await SupabaseService.initialize();
@@ -32,45 +33,55 @@ void main() async {
   } catch (e) {
     debugPrint('Error initializing services: $e');
   }
-  
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
 /// App router provider
 final _routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
-  
+
   return GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) {
+      // Skip redirection for splash screen
+      final isSplashRoute = state.matchedLocation == AppRoutes.splash;
+      if (isSplashRoute) {
+        return null;
+      }
+
       // If the user is not logged in, they need to be on either the
       // onboarding, login, or register page
       final isLoggedIn = authState.user != null;
       final isOnboardingRoute = state.matchedLocation == AppRoutes.onboarding;
       final isLoginRoute = state.matchedLocation == AppRoutes.login;
       final isRegisterRoute = state.matchedLocation == AppRoutes.register;
-      
+
       // If the user is not logged in and is not on a public route, redirect to onboarding
-      if (!isLoggedIn && 
-          !isOnboardingRoute && 
-          !isLoginRoute && 
+      if (!isLoggedIn &&
+          !isOnboardingRoute &&
+          !isLoginRoute &&
           !isRegisterRoute) {
         return AppRoutes.onboarding;
       }
-      
+
       // If the user is logged in and is on a public route, redirect to dashboard
-      if (isLoggedIn && 
+      if (isLoggedIn &&
           (isOnboardingRoute || isLoginRoute || isRegisterRoute)) {
         return AppRoutes.dashboard;
       }
-      
+
       // No redirect needed
       return null;
     },
     routes: [
       // Public routes (no navigation bar)
-      GoRoute(path: AppRoutes.root, redirect: (_, __) => AppRoutes.onboarding),
+      GoRoute(path: AppRoutes.root, redirect: (_, __) => AppRoutes.splash),
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingPage(),
@@ -83,7 +94,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.register,
         builder: (context, state) => const RegisterPage(),
       ),
-      
+
       // Shell route with navigation bar for authenticated routes
       ShellRoute(
         builder: (context, state, child) => ScaffoldWithNavBar(child: child),
@@ -116,7 +127,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
             path: '/quiz/:id',
             builder: (context, state) {
               final quizId = state.pathParameters['id']!;
-              
+
               return TakeQuizPage.fromId(quizId);
             },
           ),
@@ -124,7 +135,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
             path: '/quiz-review/:id',
             builder: (context, state) {
               final attemptId = state.pathParameters['id']!;
-              
+
               return QuizReviewDetailPage(attemptId: attemptId);
             },
           ),
@@ -140,7 +151,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(_routerProvider);
-    
+
     return MaterialApp.router(
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,

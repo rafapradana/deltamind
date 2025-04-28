@@ -410,7 +410,7 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                                       'Inter', // Brand font
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
+                                                  color: Colors.black,
                                                 ),
                                               ),
                                               Text(
@@ -419,7 +419,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                                   fontFamily:
                                                       'Inter', // Brand font
                                                   fontSize: 12,
-                                                  color: Colors.white70,
+                                                  color: Color(
+                                                    0xFF4A4A4A,
+                                                  ), // Brand gray
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
@@ -432,7 +434,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                                 fontFamily:
                                                     'Inter', // Brand font
                                                 fontSize: 14,
-                                                color: Colors.white70,
+                                                color: Color(
+                                                  0xFF4A4A4A,
+                                                ), // Brand gray
                                               ),
                                               children: [
                                                 TextSpan(
@@ -441,7 +445,7 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 20,
-                                                    color: Colors.white,
+                                                    color: Colors.black,
                                                   ),
                                                 ),
                                                 const TextSpan(
@@ -461,7 +465,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                                   fontFamily:
                                                       'Inter', // Brand font
                                                   fontSize: 12,
-                                                  color: Colors.white70,
+                                                  color: Color(
+                                                    0xFF4A4A4A,
+                                                  ), // Brand gray
                                                 ),
                                               ),
                                             ),
