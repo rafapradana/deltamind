@@ -82,11 +82,13 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
     });
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFFFFFFFF), // Brand white
       body: SafeArea(
         child:
             gamificationState.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF0056D2)),
+                ) // Brand blue
                 : FadeTransition(
                   opacity: _fadeAnimation,
                   child: CustomScrollView(
@@ -96,20 +98,22 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                       SliverAppBar(
                         floating: true,
                         pinned: true,
-                        backgroundColor: theme.scaffoldBackgroundColor,
+                        backgroundColor: const Color(0xFFFFFFFF), // Brand white
                         elevation: 0,
                         leadingWidth: 60,
                         leading: Padding(
                           padding: const EdgeInsets.only(left: 16.0),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.cyan.shade100.withOpacity(0.4),
+                              color: const Color(
+                                0x3333A1FD,
+                              ), // Light blue with opacity
                               shape: BoxShape.circle,
                             ),
                             child: IconButton(
                               icon: const Icon(
                                 PhosphorIconsFill.trophy,
-                                color: Colors.cyan,
+                                color: Color(0xFF0056D2), // Brand blue
                               ),
                               onPressed: null,
                             ),
@@ -118,8 +122,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                         title: Text(
                           'Achievements',
                           style: theme.textTheme.titleLarge?.copyWith(
+                            fontFamily: 'Inter', // Brand font
                             fontWeight: FontWeight.bold,
-                            color: Colors.cyan,
+                            color: const Color(0xFF0056D2), // Brand blue
                           ),
                         ),
                         actions: [
@@ -127,13 +132,15 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                             padding: const EdgeInsets.only(right: 16.0),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.cyan.shade100.withOpacity(0.4),
+                                color: const Color(
+                                  0x3333A1FD,
+                                ), // Light blue with opacity
                                 shape: BoxShape.circle,
                               ),
                               child: IconButton(
                                 icon: const Icon(
                                   Icons.chevron_left,
-                                  color: Colors.cyan,
+                                  color: Color(0xFF0056D2), // Brand blue
                                 ),
                                 onPressed: () => Navigator.pop(context),
                               ),
@@ -152,22 +159,22 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                               Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
+                                  gradient: const LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
-                                      Colors.indigo.shade400,
-                                      Colors.cyan.shade400,
+                                      Color(0xFF0056D2), // Brand blue
+                                      Color(0xFF33A1FD), // Light blue
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
+                                  boxShadow: const [
                                     BoxShadow(
-                                      color: Colors.cyan.shade200.withOpacity(
-                                        0.4,
-                                      ),
+                                      color: Color(
+                                        0x6633A1FD,
+                                      ), // Light blue with opacity
                                       blurRadius: 8,
-                                      offset: const Offset(0, 3),
+                                      offset: Offset(0, 3),
                                     ),
                                   ],
                                 ),
@@ -194,6 +201,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                             child: Text(
                                               '${gamificationState.userLevel!.currentLevel}',
                                               style: const TextStyle(
+                                                fontFamily:
+                                                    'Inter', // Brand font
                                                 fontSize: 28,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.white,
@@ -210,6 +219,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                               Text(
                                                 'Level ${gamificationState.userLevel!.currentLevel}',
                                                 style: const TextStyle(
+                                                  fontFamily:
+                                                      'Inter', // Brand font
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.white,
@@ -219,6 +230,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                               Text(
                                                 'Total XP: ${gamificationState.userLevel!.totalXpEarned}',
                                                 style: TextStyle(
+                                                  fontFamily:
+                                                      'Inter', // Brand font
                                                   fontSize: 14,
                                                   color: Colors.white
                                                       .withOpacity(0.9),
@@ -242,6 +255,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                             Text(
                                               '${gamificationState.userLevel!.currentXp} / ${gamificationState.userLevel!.xpNeededForNextLevel} XP',
                                               style: const TextStyle(
+                                                fontFamily:
+                                                    'Inter', // Brand font
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.white,
@@ -250,6 +265,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                             Text(
                                               'Next: Level ${gamificationState.userLevel!.currentLevel + 1}',
                                               style: TextStyle(
+                                                fontFamily:
+                                                    'Inter', // Brand font
                                                 fontSize: 13,
                                                 color: Colors.white.withOpacity(
                                                   0.9,
@@ -389,6 +406,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                               const Text(
                                                 'Current Streak',
                                                 style: TextStyle(
+                                                  fontFamily:
+                                                      'Inter', // Brand font
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.white,
@@ -397,6 +416,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                               Text(
                                                 'Best: ${gamificationState.userStreak!.longestStreak}',
                                                 style: const TextStyle(
+                                                  fontFamily:
+                                                      'Inter', // Brand font
                                                   fontSize: 12,
                                                   color: Colors.white70,
                                                   fontWeight: FontWeight.w500,
@@ -408,6 +429,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                           RichText(
                                             text: TextSpan(
                                               style: const TextStyle(
+                                                fontFamily:
+                                                    'Inter', // Brand font
                                                 fontSize: 14,
                                                 color: Colors.white70,
                                               ),
@@ -435,6 +458,8 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                               child: Text(
                                                 'Next goal: ${nextStreakAchievement.requirementValue} days',
                                                 style: const TextStyle(
+                                                  fontFamily:
+                                                      'Inter', // Brand font
                                                   fontSize: 12,
                                                   color: Colors.white70,
                                                 ),
@@ -451,11 +476,13 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                             Container(
                               margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: const Color(0xFFFFFFFF), // Brand white
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.grey.withOpacity(0.1),
+                                    color: const Color(0xFF4A4A4A).withOpacity(
+                                      0.1,
+                                    ), // Brand gray with opacity
                                     blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),
@@ -469,15 +496,19 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                     children: [
                                       Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.cyan.shade50,
+                                          color: const Color(
+                                            0x3333A1FD,
+                                          ), // Light blue with opacity
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
                                         ),
                                         padding: const EdgeInsets.all(8),
-                                        child: Icon(
+                                        child: const Icon(
                                           PhosphorIconsFill.chartBar,
-                                          color: Colors.cyan.shade600,
+                                          color: Color(
+                                            0xFF0056D2,
+                                          ), // Brand blue
                                           size: 18,
                                         ),
                                       ),
@@ -485,9 +516,12 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                       const Text(
                                         'Your Progress',
                                         style: TextStyle(
+                                          fontFamily: 'Inter', // Brand font
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: Color(
+                                            0xFF000000,
+                                          ), // Brand black
                                         ),
                                       ),
                                     ],
@@ -496,8 +530,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                   RichText(
                                     text: TextSpan(
                                       style: const TextStyle(
+                                        fontFamily: 'Inter', // Brand font
                                         fontSize: 14,
-                                        color: Colors.black54,
+                                        color: Color(0xFF4A4A4A), // Brand gray
                                       ),
                                       children: [
                                         const TextSpan(
@@ -506,9 +541,11 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                         TextSpan(
                                           text:
                                               '${gamificationState.earnedAchievements.length}',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.cyan.shade600,
+                                            color: Color(
+                                              0xFF0056D2,
+                                            ), // Brand blue
                                           ),
                                         ),
                                         const TextSpan(text: ' out of '),
@@ -517,7 +554,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                               '${gamificationState.achievements.length}',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
+                                            color: Color(
+                                              0xFF000000,
+                                            ), // Brand black
                                           ),
                                         ),
                                         const TextSpan(text: ' achievements.'),
@@ -531,7 +570,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                       Container(
                                         height: 8,
                                         decoration: BoxDecoration(
-                                          color: Colors.cyan.shade50,
+                                          color: const Color(
+                                            0x3333A1FD,
+                                          ), // Light blue with opacity
                                           borderRadius: BorderRadius.circular(
                                             4,
                                           ),
@@ -553,7 +594,9 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                         child: Container(
                                           height: 8,
                                           decoration: BoxDecoration(
-                                            color: Colors.cyan,
+                                            color: const Color(
+                                              0xFF0056D2,
+                                            ), // Brand blue
                                             borderRadius: BorderRadius.circular(
                                               4,
                                             ),
@@ -567,10 +610,11 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                     alignment: Alignment.centerRight,
                                     child: Text(
                                       '${((gamificationState.earnedAchievements.length / gamificationState.achievements.length) * 100).toInt()}% complete',
-                                      style: TextStyle(
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter', // Brand font
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.cyan.shade600,
+                                        color: Color(0xFF0056D2), // Brand blue
                                       ),
                                     ),
                                   ),
@@ -584,9 +628,10 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                               child: Text(
                                 'Categories',
                                 style: TextStyle(
+                                  fontFamily: 'Inter', // Brand font
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: Color(0xFF000000), // Brand black
                                 ),
                               ),
                             ),
@@ -607,14 +652,23 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                           _selectedCategory = 'All';
                                         });
                                       },
-                                      backgroundColor: Colors.white,
-                                      selectedColor: Colors.cyan.shade50,
-                                      checkmarkColor: Colors.cyan,
+                                      backgroundColor: const Color(
+                                        0xFFFFFFFF,
+                                      ), // Brand white
+                                      selectedColor: const Color(
+                                        0x3333A1FD,
+                                      ), // Light blue with opacity
+                                      checkmarkColor: const Color(
+                                        0xFF0056D2,
+                                      ), // Brand blue
                                       labelStyle: TextStyle(
+                                        fontFamily: 'Inter', // Brand font
                                         color:
                                             _selectedCategory == 'All'
-                                                ? Colors.cyan
-                                                : Colors.black54,
+                                                ? const Color(0xFF0056D2)
+                                                : const Color(
+                                                  0xFF4A4A4A,
+                                                ), // Brand blue or gray
                                         fontWeight:
                                             _selectedCategory == 'All'
                                                 ? FontWeight.bold
@@ -625,8 +679,12 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                         side: BorderSide(
                                           color:
                                               _selectedCategory == 'All'
-                                                  ? Colors.cyan
-                                                  : Colors.grey.shade300,
+                                                  ? const Color(0xFF0056D2)
+                                                  : const Color(
+                                                    0xFF4A4A4A,
+                                                  ).withOpacity(
+                                                    0.3,
+                                                  ), // Brand blue or gray
                                           width: 1,
                                         ),
                                       ),
@@ -635,53 +693,81 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                                       ),
                                     ),
                                   ),
-                                  ...AppConstants.achievementCategories
-                                      .where((category) => category != 'All')
-                                      .map((category) {
-                                        final isSelected =
-                                            _selectedCategory == category;
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 8,
-                                          ),
-                                          child: FilterChip(
-                                            label: Text(category),
-                                            selected: isSelected,
-                                            onSelected: (selected) {
-                                              setState(() {
-                                                _selectedCategory = category;
-                                              });
-                                            },
-                                            backgroundColor: Colors.white,
-                                            selectedColor: Colors.cyan.shade50,
-                                            checkmarkColor: Colors.cyan,
-                                            labelStyle: TextStyle(
-                                              color:
-                                                  isSelected
-                                                      ? Colors.cyan
-                                                      : Colors.black54,
-                                              fontWeight:
-                                                  isSelected
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
+                                  // Safely handle categories from constants
+                                  if (AppConstants
+                                      .achievementCategories
+                                      .isNotEmpty)
+                                    ...AppConstants.achievementCategories
+                                        .where(
+                                          (category) =>
+                                              category != 'All' &&
+                                              category.isNotEmpty,
+                                        )
+                                        .map((category) {
+                                          final isSelected =
+                                              _selectedCategory == category;
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8,
                                             ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              side: BorderSide(
+                                            child: FilterChip(
+                                              label: Text(category),
+                                              selected: isSelected,
+                                              onSelected: (selected) {
+                                                setState(() {
+                                                  _selectedCategory = category;
+                                                });
+                                              },
+                                              backgroundColor: const Color(
+                                                0xFFFFFFFF,
+                                              ), // Brand white
+                                              selectedColor: const Color(
+                                                0x3333A1FD,
+                                              ), // Light blue with opacity
+                                              checkmarkColor: const Color(
+                                                0xFF0056D2,
+                                              ), // Brand blue
+                                              labelStyle: TextStyle(
+                                                fontFamily:
+                                                    'Inter', // Brand font
                                                 color:
                                                     isSelected
-                                                        ? Colors.cyan
-                                                        : Colors.grey.shade300,
-                                                width: 1,
+                                                        ? const Color(
+                                                          0xFF0056D2,
+                                                        )
+                                                        : const Color(
+                                                          0xFF4A4A4A,
+                                                        ), // Brand blue or gray
+                                                fontWeight:
+                                                    isSelected
+                                                        ? FontWeight.bold
+                                                        : FontWeight.normal,
                                               ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                side: BorderSide(
+                                                  color:
+                                                      isSelected
+                                                          ? const Color(
+                                                            0xFF0056D2,
+                                                          )
+                                                          : const Color(
+                                                            0xFF4A4A4A,
+                                                          ).withOpacity(
+                                                            0.3,
+                                                          ), // Brand blue or gray
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                  ),
                                             ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                            ),
-                                          ),
-                                        );
-                                      }),
+                                          );
+                                        })
+                                        .toList(),
                                 ],
                               ),
                             ),
@@ -692,107 +778,141 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
                       ),
 
                       // Achievements list
-                      filteredAchievements.isEmpty
-                          ? SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 20),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      PhosphorIconsFill.trophy,
-                                      size: 50,
-                                      color: Colors.grey.shade300,
+                      if (gamificationState.achievements.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 20),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    PhosphorIconsFill.trophy,
+                                    size: 50,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Loading achievements...',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter', // Brand font
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF000000), // Brand black
                                     ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'No achievements found',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      _selectedCategory != 'All'
-                                          ? 'Try selecting a different category'
-                                          : 'Complete quizzes to unlock achievements',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 20),
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        setState(() {
-                                          _selectedCategory = 'All';
-                                        });
-                                      },
-                                      icon: const Icon(
-                                        PhosphorIconsFill.listBullets,
-                                        size: 16,
-                                      ),
-                                      label: const Text(
-                                        'Show all achievements',
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.cyan,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 10,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        elevation: 0,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
                             ),
-                          )
-                          : SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                            sliver: SliverAnimatedList(
-                              initialItemCount: filteredAchievements.length,
-                              itemBuilder: (context, index, animation) {
-                                final achievement = filteredAchievements[index];
-
-                                return SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0.5, 0),
-                                    end: Offset.zero,
-                                  ).animate(
-                                    CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeOutQuart,
+                          ),
+                        )
+                      else if (filteredAchievements.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 20),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    PhosphorIconsFill.trophy,
+                                    size: 50,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'No achievements found',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter', // Brand font
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF000000), // Brand black
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _selectedCategory != 'All'
+                                        ? 'Try selecting a different category'
+                                        : 'Complete quizzes to unlock achievements',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter', // Brand font
+                                      fontSize: 14,
+                                      color: Color(0xFF4A4A4A), // Brand gray
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedCategory = 'All';
+                                      });
+                                    },
+                                    icon: const Icon(
+                                      PhosphorIconsFill.listBullets,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Show all achievements'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(
+                                        0xFF0056D2,
+                                      ), // Brand blue
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      elevation: 0,
                                     ),
                                   ),
-                                  child: FadeTransition(
-                                    opacity: animation,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12,
-                                      ),
-                                      child: AchievementCard(
-                                        achievement: achievement,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                                ],
+                              ),
                             ),
                           ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+                          sliver: SliverAnimatedList(
+                            initialItemCount: filteredAchievements.length,
+                            itemBuilder: (context, index, animation) {
+                              // Guard against index out of range errors
+                              if (index >= filteredAchievements.length) {
+                                return const SizedBox.shrink();
+                              }
+
+                              final achievement = filteredAchievements[index];
+
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.5, 0),
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeOutQuart,
+                                  ),
+                                ),
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: AchievementCard(
+                                      achievement: achievement,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -817,23 +937,31 @@ class _AchievementsPageState extends ConsumerState<AchievementsPage>
 
   // Helper function to get color for category
   Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'All':
-        return AppColors.secondary;
-      case 'Beginner':
-        return Colors.blue;
-      case 'Intermediate':
-        return Colors.green;
-      case 'Advanced':
-        return Colors.deepPurple;
-      case 'Streak':
-        return Colors.orange;
-      case 'Performance':
-        return Colors.red;
-      case 'Creation':
-        return Colors.teal;
-      default:
-        return Colors.blueGrey;
+    // Default fallback color
+    const Color defaultColor = Color(0xFF4A4A4A); // Brand gray
+
+    try {
+      switch (category) {
+        case 'All':
+          return const Color(0xFF33A1FD); // Light blue
+        case 'Beginner':
+          return const Color(0xFF0056D2); // Brand blue
+        case 'Intermediate':
+          return const Color(0xFF4A4A4A); // Brand gray
+        case 'Advanced':
+          return const Color(0xFF000000); // Brand black
+        case 'Streak':
+          return Colors.orange; // Keep as is for streak
+        case 'Performance':
+          return const Color(0xFF33A1FD); // Light blue
+        case 'Creation':
+          return const Color(0xFF0056D2); // Brand blue
+        default:
+          return defaultColor;
+      }
+    } catch (e) {
+      debugPrint('Error getting category color: $e');
+      return defaultColor;
     }
   }
 }

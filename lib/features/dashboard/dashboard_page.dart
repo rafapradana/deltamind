@@ -282,11 +282,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
     final totalCompleted = _quizHistoryStats['completed_quizzes'] ?? 0;
     final avgScore = _quizHistoryStats['average_score'] ?? 0.0;
 
-    // Define multiple colors for variety but keep them modern
+    // Define multiple colors for variety but keep them on brand
     final colors = [
-      AppColors.primary,
-      Colors.green.shade600,
-      Colors.indigo.shade500,
+      AppColors.primary, // Primary Blue
+      AppColors.secondary, // Light Blue
+      AppColors.gray, // Gray
     ];
 
     return Column(
@@ -311,7 +311,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 totalQuizzes.toString(),
                 PhosphorIconsFill.fileText,
                 colors[0],
-                Colors.blue.shade50,
+                AppColors.primary.withOpacity(0.1),
               ),
             ),
             const SizedBox(width: 8),
@@ -321,7 +321,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 totalCompleted.toString(),
                 PhosphorIconsFill.checkSquare,
                 colors[1],
-                Colors.green.shade50,
+                AppColors.secondary.withOpacity(0.1),
               ),
             ),
             const SizedBox(width: 8),
@@ -331,7 +331,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 '${avgScore.toStringAsFixed(1)}%',
                 PhosphorIconsFill.chartBar,
                 colors[2],
-                Colors.indigo.shade50,
+                AppColors.gray.withOpacity(0.1),
               ),
             ),
           ],
@@ -432,14 +432,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 32, color: Colors.grey.shade400),
+          Icon(icon, size: 32, color: AppColors.primary.withOpacity(0.5)),
           const SizedBox(height: 8),
           Text(
             title,
@@ -452,7 +452,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           Text(
             subtitle,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey.shade600,
+              color: AppColors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -518,7 +518,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         subtitle: Text(
           quiz.description ?? 'No description',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.grey.shade700,
+            color: AppColors.textSecondary,
             fontSize: 11,
           ),
           maxLines: 1,
@@ -616,7 +616,7 @@ class DashboardGreeting extends ConsumerWidget {
                       Text(
                         greeting,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -694,7 +694,7 @@ class StatsCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.white, color.withOpacity(0.05)],
+              colors: [Colors.white, AppColors.primary.withOpacity(0.05)],
             ),
           ),
           padding: const EdgeInsets.all(16.0),
