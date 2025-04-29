@@ -9,8 +9,9 @@ DeltaMind is an intelligent learning assistant that helps users create personali
 - **AI-Generated Quizzes**: Upload PDF or text files, or paste your study notes to instantly generate quizzes
 - **Personalized Learning**: Choose quiz types (multiple choice, true/false), difficulty levels, and question count
 - **Smart Feedback**: Receive AI-powered recommendations based on your quiz performance
-- **Progress Tracking**: Monitor your learning progress over time
 - **Cross-Platform**: Works seamlessly on web, iOS, and Android
+- **Streak Freeze**: Pause your streak to maintain your momentum even during breaks.
+
 
 ## 🚀 Getting Started
 
