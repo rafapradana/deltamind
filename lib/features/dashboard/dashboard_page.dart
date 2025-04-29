@@ -160,8 +160,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                               const DashboardStreakSummary(),
                               const SizedBox(height: 16),
 
-                              // Stats cards with visual improvements
-                              _buildStats(),
+                              // Analytics card
+                              _buildAnalyticsCard(),
                               const SizedBox(height: 16),
 
                               // Recent quizzes with visual enhancements
@@ -275,113 +275,50 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
     );
   }
 
-  /// Build stats section
-  Widget _buildStats() {
-    final theme = Theme.of(context);
-    final totalQuizzes = _quizHistoryStats['total_quizzes'] ?? 0;
-    final totalCompleted = _quizHistoryStats['completed_quizzes'] ?? 0;
-    final avgScore = _quizHistoryStats['average_score'] ?? 0.0;
-
-    // Define multiple colors for variety but keep them on brand
-    final colors = [
-      AppColors.primary, // Primary Blue
-      AppColors.secondary, // Light Blue
-      AppColors.gray, // Gray
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Your Stats',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              // Reduced from titleSmall
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Total Quizzes',
-                totalQuizzes.toString(),
-                PhosphorIconsFill.fileText,
-                colors[0],
-                AppColors.primary.withOpacity(0.1),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatCard(
-                'Completed',
-                totalCompleted.toString(),
-                PhosphorIconsFill.checkSquare,
-                colors[1],
-                AppColors.secondary.withOpacity(0.1),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatCard(
-                'Avg. Score',
-                '${avgScore.toStringAsFixed(1)}%',
-                PhosphorIconsFill.chartBar,
-                colors[2],
-                AppColors.gray.withOpacity(0.1),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Build stat card with responsive width
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    Color bgColor,
-  ) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: BoxDecoration(
-        color: bgColor,
+  /// Build analytics card
+  Widget _buildAnalyticsCard() {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-            textAlign: TextAlign.center,
+      child: InkWell(
+        onTap: () => context.push(AppRoutes.analytics),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  PhosphorIconsFill.chartLine,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Learning Analytics',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Icon(
+                PhosphorIconsFill.arrowRight,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey.shade700,
-              fontSize: 10,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        ),
       ),
     );
   }

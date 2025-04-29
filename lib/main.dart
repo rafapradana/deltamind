@@ -6,6 +6,7 @@ import 'package:deltamind/features/auth/login_page.dart';
 import 'package:deltamind/features/auth/register_page.dart';
 import 'package:deltamind/features/dashboard/dashboard_page.dart';
 import 'package:deltamind/features/gamification/achievements_page.dart';
+import 'package:deltamind/features/gamification/streak_freeze_page.dart';
 import 'package:deltamind/features/navigation/scaffold_with_nav_bar.dart';
 import 'package:deltamind/features/onboarding/onboarding_page.dart';
 import 'package:deltamind/features/profile/profile_page.dart';
@@ -16,6 +17,7 @@ import 'package:deltamind/features/reviews/reviews_page.dart';
 import 'package:deltamind/features/history/history_page.dart';
 import 'package:deltamind/features/history/quiz_review_detail_page.dart';
 import 'package:deltamind/features/splash/splash_screen.dart';
+import 'package:deltamind/features/analytics/analytics_page.dart';
 import 'package:deltamind/services/gemini_service.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
@@ -122,6 +124,14 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.achievements,
             builder: (context, state) => const AchievementsPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.analytics,
+            builder: (context, state) => const AnalyticsPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.streakFreeze,
+            builder: (context, state) => const StreakFreezePage(),
           ),
           GoRoute(
             path: '/quiz/:id',

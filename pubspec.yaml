@@ -64,6 +64,7 @@ dependencies:
   go_router: ^15.1.1
   syncfusion_flutter_pdf: ^29.1.39
   flutter_markdown: ^0.7.7
+  fl_chart: ^0.71.0
 
 dev_dependencies:
   flutter_test:

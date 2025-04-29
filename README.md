@@ -9,8 +9,10 @@ DeltaMind is an intelligent learning assistant that helps users create personali
 - **AI-Generated Quizzes**: Upload PDF or text files, or paste your study notes to instantly generate quizzes
 - **Personalized Learning**: Choose quiz types (multiple choice, true/false), difficulty levels, and question count
 - **Smart Feedback**: Receive AI-powered recommendations based on your quiz performance
-- **Progress Tracking**: Monitor your learning progress over time
 - **Cross-Platform**: Works seamlessly on web, iOS, and Android
+- **Streak Freeze**: Pause your streak to maintain your momentum even during breaks.
+- **Analytics**: Gain deeper insights into your learning progress and quiz performance.
+
 
 ## 🚀 Getting Started
 
@@ -25,15 +27,16 @@ DeltaMind is an intelligent learning assistant that helps users create personali
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/your-username/deltamind.git
+   git clone https://github.com/rafapradana/deltamind.git
    cd deltamind
    ```
 
 2. Create a `.env` file in the project root with the following variables:
    ```
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   GEMINI_API_KEY=your_gemini_api_key
+   SUPABASE_URL=contact_me_to_get_the_url
+   SUPABASE_ANON_KEY=contact_me_to_get_the_anon_key
+   GEMINI_API_KEY=use_your_own_gemini_api_key
+
    ```
 
 3. Install dependencies

@@ -383,15 +383,23 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
                       ),
                     const SizedBox(height: 12),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        _buildQuizChip(quiz.quizType, Icons.question_answer),
+                        Flexible(
+                          child: _buildQuizChip(
+                            quiz.quizType,
+                            Icons.question_answer,
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        _buildDifficultyChip(quiz.difficulty),
+                        Flexible(child: _buildDifficultyChip(quiz.difficulty)),
                         const SizedBox(width: 8),
                         if (quiz.createdAt != null)
-                          _buildQuizChip(
-                            _formatDate(quiz.createdAt!),
-                            Icons.calendar_today,
+                          Flexible(
+                            child: _buildQuizChip(
+                              _formatDate(quiz.createdAt!),
+                              Icons.calendar_today,
+                            ),
                           ),
                       ],
                     ),
@@ -429,7 +437,14 @@ class _QuizListPageState extends ConsumerState<QuizListPage> {
         children: [
           Icon(icon, size: 16, color: AppColors.primary),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 12, color: AppColors.primary)),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, color: AppColors.primary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

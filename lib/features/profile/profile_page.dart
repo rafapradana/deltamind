@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Profile page
 class ProfilePage extends ConsumerStatefulWidget {
@@ -348,10 +349,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
+        backgroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(PhosphorIconsFill.chartLine),
+            onPressed: () => context.push(AppRoutes.analytics),
+            tooltip: 'Analytics',
+          ),
+          IconButton(
+            icon: Icon(PhosphorIconsFill.signOut),
             onPressed: _isLoading ? null : _signOut,
+            tooltip: 'Sign Out',
           ),
         ],
       ),
