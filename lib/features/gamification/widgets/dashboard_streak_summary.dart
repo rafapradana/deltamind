@@ -1,11 +1,13 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/features/gamification/gamification_controller.dart';
+import 'package:deltamind/features/gamification/widgets/streak_freeze_widget.dart';
 import 'package:deltamind/services/streak_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 class DashboardStreakSummary extends ConsumerWidget {
   const DashboardStreakSummary({super.key});
@@ -31,71 +33,10 @@ class DashboardStreakSummary extends ConsumerWidget {
     // User has streak data, show it
     final streak = gamificationState.userStreak!;
     final level = gamificationState.userLevel;
-    final recentAchievements =
-        ref
-            .read(gamificationControllerProvider.notifier)
-            .getRecentAchievements();
+    final streakFreeze = gamificationState.streakFreeze;
+    final hasStreakFreezes =
+        streakFreeze != null && streakFreeze.availableFreezes > 0;
 
-    return _buildStreakCard(context, theme, streak, level, recentAchievements);
-  }
-
-  Widget _buildEmptyStreakCard(BuildContext context, ThemeData theme) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
-      ),
-      child: InkWell(
-        onTap: () => context.push(AppRoutes.achievements),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          child: Row(
-            children: [
-              Icon(PhosphorIconsFill.flame, color: Colors.grey, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '0-Day Streak',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Complete a quiz today to start your streak!',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                PhosphorIconsFill.caretRight,
-                color: AppColors.primary,
-                size: 16,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStreakCard(
-    BuildContext context,
-    ThemeData theme,
-    UserStreak streak,
-    UserLevel? level,
-    List<Achievement> recentAchievements,
-  ) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -150,15 +91,25 @@ class DashboardStreakSummary extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          streak.currentStreak > 0
-                              ? 'Keep going! Your longest streak is ${streak.longestStreak} days.'
-                              : 'Complete a quiz today to start your streak!',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                streak.currentStreak > 0
+                                    ? 'Keep going! Your longest streak is ${streak.longestStreak} days.'
+                                    : 'Complete a quiz today to start your streak!',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (hasStreakFreezes) ...[
+                              const SizedBox(width: 4),
+                              const StreakFreezeWidget(compact: true),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -172,38 +123,118 @@ class DashboardStreakSummary extends ConsumerWidget {
               ),
             ),
 
-            // Recent achievements section with horizontal divider
-            if (recentAchievements.isNotEmpty) ...[
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(16),
+            // Active streak freeze indicator
+            if (streak.isStreakFreezeActive)
+              _buildCompactActiveStreakFreezeIndicator(
+                context,
+                streak.streakFreezeExpiry,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactActiveStreakFreezeIndicator(
+    BuildContext context,
+    DateTime? expiryTime,
+  ) {
+    final theme = Theme.of(context);
+
+    // Format the expiry time
+    String expiryText = 'Active';
+    if (expiryTime != null) {
+      final now = DateTime.now();
+      final difference = expiryTime.difference(now);
+      if (difference.inDays > 0) {
+        expiryText =
+            'Expires tomorrow at ${DateFormat('HH:mm').format(expiryTime)}';
+      } else if (difference.inHours > 0) {
+        expiryText =
+            'Expires in ${difference.inHours}h ${difference.inMinutes % 60}m';
+      } else if (difference.inMinutes > 0) {
+        expiryText = 'Expires in ${difference.inMinutes}m';
+      } else {
+        expiryText = 'Expires soon';
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        border: Border(top: BorderSide(color: Colors.blue.shade100)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            PhosphorIconsFill.snowflake,
+            color: Colors.blue.shade700,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Streak Freeze: $expiryText',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: Colors.blue.shade700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyStreakCard(BuildContext context, ThemeData theme) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: InkWell(
+        onTap: () => context.push(AppRoutes.achievements),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          child: Row(
+            children: [
+              Icon(PhosphorIconsFill.flame, color: Colors.grey, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          PhosphorIconsFill.trophy,
-                          color: Colors.amber.shade700,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Recently earned:',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '0-Day Streak',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    _buildAchievementChips(context, theme, recentAchievements),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Complete a quiz today to start your streak!',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
+              Icon(
+                PhosphorIconsFill.caretRight,
+                color: AppColors.primary,
+                size: 16,
+              ),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -226,58 +257,19 @@ class DashboardStreakSummary extends ConsumerWidget {
     );
   }
 
-  Widget _buildAchievementChips(
-    BuildContext context,
-    ThemeData theme,
-    List<Achievement> achievements,
-  ) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 8,
-      children:
-          achievements.take(3).map((achievement) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    PhosphorIconsFill.star,
-                    size: 12,
-                    color: Colors.amber.shade700,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    achievement.name,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade800,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-    );
-  }
-
-  Color _getStreakColor(int streakDays) {
-    if (streakDays >= 30) {
-      return Colors.deepOrange.shade700;
-    } else if (streakDays >= 14) {
-      return Colors.orange.shade800;
-    } else if (streakDays >= 7) {
-      return Colors.orange.shade600;
-    } else if (streakDays >= 3) {
-      return Colors.orange;
+  Color _getStreakColor(int streakCount) {
+    if (streakCount >= 30) {
+      return Colors.purple;
+    } else if (streakCount >= 14) {
+      return Colors.indigo;
+    } else if (streakCount >= 7) {
+      return Colors.blue;
+    } else if (streakCount >= 3) {
+      return Colors.green;
+    } else if (streakCount > 0) {
+      return AppColors.primary;
     } else {
-      return Colors.orange.shade300;
+      return Colors.grey;
     }
   }
 }

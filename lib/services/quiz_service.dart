@@ -35,12 +35,14 @@ class Quiz {
       description: json['description'],
       quizType: json['quiz_type'],
       difficulty: json['difficulty'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'])
+              : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'])
+              : null,
     );
   }
 
@@ -88,17 +90,20 @@ class Question {
       quizId: json['quiz_id'],
       questionText: json['question_text'],
       questionType: json['question_type'],
-      options: json['options'] is List
-          ? List<String>.from(json['options'])
-          : List<String>.from(jsonDecode(json['options'])),
+      options:
+          json['options'] is List
+              ? List<String>.from(json['options'])
+              : List<String>.from(jsonDecode(json['options'])),
       correctAnswer: json['correct_answer'],
       explanation: json['explanation'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'])
+              : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'])
+              : null,
     );
   }
 
@@ -140,11 +145,12 @@ class QuizService {
         'user_id': userId,
       };
 
-      final response = await SupabaseService.client
-          .from('quizzes')
-          .insert(quizData)
-          .select()
-          .single();
+      final response =
+          await SupabaseService.client
+              .from('quizzes')
+              .insert(quizData)
+              .select()
+              .single();
 
       return Quiz.fromJson(response);
     } catch (e) {
@@ -167,9 +173,7 @@ class QuizService {
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((quiz) => Quiz.fromJson(quiz))
-          .toList();
+      return (response as List).map((quiz) => Quiz.fromJson(quiz)).toList();
     } catch (e) {
       debugPrint('Error getting user quizzes: $e');
       rethrow;
@@ -179,11 +183,12 @@ class QuizService {
   /// Get a quiz by ID
   static Future<Quiz> getQuizById(String quizId) async {
     try {
-      final response = await SupabaseService.client
-          .from('quizzes')
-          .select()
-          .eq('id', quizId)
-          .single();
+      final response =
+          await SupabaseService.client
+              .from('quizzes')
+              .select()
+              .eq('id', quizId)
+              .single();
 
       return Quiz.fromJson(response);
     } catch (e) {
@@ -202,10 +207,7 @@ class QuizService {
           .eq('quiz_id', quizId);
 
       // Then delete the quiz
-      await SupabaseService.client
-          .from('quizzes')
-          .delete()
-          .eq('id', quizId);
+      await SupabaseService.client.from('quizzes').delete().eq('id', quizId);
     } catch (e) {
       debugPrint('Error deleting quiz: $e');
       rethrow;
@@ -249,11 +251,12 @@ class QuizService {
         'explanation': explanation,
       };
 
-      final response = await SupabaseService.client
-          .from('questions')
-          .insert(questionData)
-          .select()
-          .single();
+      final response =
+          await SupabaseService.client
+              .from('questions')
+              .insert(questionData)
+              .select()
+              .single();
 
       return Question.fromJson(response);
     } catch (e) {
@@ -317,7 +320,7 @@ class QuizService {
         difficulty: difficulty,
         questionCount: questionCount,
       );
-      
+
       // Parse JSON response
       Map<String, dynamic> jsonResponse;
       try {
@@ -329,8 +332,10 @@ class QuizService {
         debugPrint('Error parsing JSON response: $e');
         throw Exception('Failed to parse AI response: $e');
       }
-      
-      final generatedQuestions = List<Map<String, dynamic>>.from(jsonResponse['questions']);
+
+      final generatedQuestions = List<Map<String, dynamic>>.from(
+        jsonResponse['questions'],
+      );
 
       // Add each generated question to the quiz
       for (var questionData in generatedQuestions) {
@@ -355,4 +360,50 @@ class QuizService {
       rethrow;
     }
   }
-} 
+
+  /// Delete all quiz attempts for the current user
+  static Future<void> deleteAllQuizAttempts() async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // First get all quiz attempts for this user
+      final attempts = await SupabaseService.client
+          .from('quiz_attempts')
+          .select('id')
+          .eq('user_id', userId);
+
+      if (attempts.isEmpty) {
+        return; // No attempts to delete
+      }
+
+      // Delete all quiz attempts in order to maintain referential integrity
+      for (final attempt in attempts) {
+        final attemptId = attempt['id'];
+
+        // Delete related AI recommendations
+        await SupabaseService.client
+            .from('ai_recommendations')
+            .delete()
+            .eq('quiz_attempt_id', attemptId);
+
+        // Delete related user answers
+        await SupabaseService.client
+            .from('user_answers')
+            .delete()
+            .eq('quiz_attempt_id', attemptId);
+      }
+
+      // Finally delete all attempts
+      await SupabaseService.client
+          .from('quiz_attempts')
+          .delete()
+          .eq('user_id', userId);
+    } catch (e) {
+      debugPrint('Error deleting all quiz attempts: $e');
+      rethrow;
+    }
+  }
+}

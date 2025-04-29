@@ -8,6 +8,8 @@ class UserStreak {
   final int longestStreak;
   final DateTime lastActivityDate;
   final DateTime? streakStartDate;
+  final bool isStreakFreezeActive;
+  final DateTime? streakFreezeExpiry;
 
   UserStreak({
     required this.userId,
@@ -15,6 +17,8 @@ class UserStreak {
     required this.longestStreak,
     required this.lastActivityDate,
     this.streakStartDate,
+    this.isStreakFreezeActive = false,
+    this.streakFreezeExpiry,
   });
 
   factory UserStreak.fromJson(Map<String, dynamic> json) {
@@ -23,9 +27,45 @@ class UserStreak {
       currentStreak: json['current_streak'] ?? 0,
       longestStreak: json['longest_streak'] ?? 0,
       lastActivityDate: DateTime.parse(json['last_activity_date']),
-      streakStartDate: json['streak_start_date'] != null 
-        ? DateTime.parse(json['streak_start_date']) 
-        : null,
+      streakStartDate:
+          json['streak_start_date'] != null
+              ? DateTime.parse(json['streak_start_date'])
+              : null,
+      isStreakFreezeActive: json['is_streak_freeze_active'] ?? false,
+      streakFreezeExpiry:
+          json['streak_freeze_expiry'] != null
+              ? DateTime.parse(json['streak_freeze_expiry'])
+              : null,
+    );
+  }
+}
+
+/// Model class for streak freezes
+class StreakFreeze {
+  final String userId;
+  final int availableFreezes;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  StreakFreeze({
+    required this.userId,
+    required this.availableFreezes,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory StreakFreeze.fromJson(Map<String, dynamic> json) {
+    return StreakFreeze(
+      userId: json['user_id'],
+      availableFreezes: json['available_freezes'] ?? 0,
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'])
+              : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'])
+              : null,
     );
   }
 }
@@ -56,7 +96,11 @@ class Achievement {
     this.earnedAt,
   });
 
-  factory Achievement.fromJson(Map<String, dynamic> json, {bool? earned, DateTime? earnedDate}) {
+  factory Achievement.fromJson(
+    Map<String, dynamic> json, {
+    bool? earned,
+    DateTime? earnedDate,
+  }) {
     return Achievement(
       id: json['id'],
       name: json['name'],
@@ -94,15 +138,16 @@ class UserLevel {
       currentLevel: json['current_level'] ?? 1,
       currentXp: json['current_xp'] ?? 0,
       totalXpEarned: json['total_xp_earned'] ?? 0,
-      xpNeededForNextLevel: (json['current_level'] ?? 1) * 100, // Same formula as in DB
+      xpNeededForNextLevel:
+          (json['current_level'] ?? 1) * 100, // Same formula as in DB
     );
   }
 
   /// Get progress percentage towards next level (0.0 to 1.0)
   double get levelProgress {
-    return xpNeededForNextLevel > 0 
-      ? (currentXp / xpNeededForNextLevel).clamp(0.0, 1.0) 
-      : 0.0;
+    return xpNeededForNextLevel > 0
+        ? (currentXp / xpNeededForNextLevel).clamp(0.0, 1.0)
+        : 0.0;
   }
 }
 
@@ -115,13 +160,14 @@ class StreakService {
       if (userId == null) {
         throw Exception('User not authenticated');
       }
-      
-      final response = await SupabaseService.client
-          .from('user_streaks')
-          .select()
-          .eq('user_id', userId)
-          .single();
-      
+
+      final response =
+          await SupabaseService.client
+              .from('user_streaks')
+              .select()
+              .eq('user_id', userId)
+              .single();
+
       return UserStreak.fromJson(response);
     } catch (e) {
       debugPrint('Error getting user streak: $e');
@@ -136,13 +182,14 @@ class StreakService {
       if (userId == null) {
         throw Exception('User not authenticated');
       }
-      
-      final response = await SupabaseService.client
-          .from('user_levels')
-          .select()
-          .eq('user_id', userId)
-          .single();
-      
+
+      final response =
+          await SupabaseService.client
+              .from('user_levels')
+              .select()
+              .eq('user_id', userId)
+              .single();
+
       return UserLevel.fromJson(response);
     } catch (e) {
       debugPrint('Error getting user level: $e');
@@ -157,38 +204,40 @@ class StreakService {
       if (userId == null) {
         throw Exception('User not authenticated');
       }
-      
+
       // Get all achievements
-      final achievementsResponse = await SupabaseService.client
-          .from('achievements')
-          .select();
-      
+      final achievementsResponse =
+          await SupabaseService.client.from('achievements').select();
+
       // Get user's earned achievements
       final userAchievementsResponse = await SupabaseService.client
           .from('user_achievements')
           .select('achievement_id, earned_at')
           .eq('user_id', userId);
-      
+
       // Convert to a map for easy lookup
       final Map<String, DateTime> earnedAchievements = {};
       for (final item in userAchievementsResponse) {
-        earnedAchievements[item['achievement_id']] = 
-            DateTime.parse(item['earned_at']);
-      }
-      
-      // Create achievement objects with earned status
-      final achievements = achievementsResponse.map<Achievement>((json) {
-        final achievementId = json['id'];
-        final isEarned = earnedAchievements.containsKey(achievementId);
-        final earnedAt = isEarned ? earnedAchievements[achievementId] : null;
-        
-        return Achievement.fromJson(
-          json, 
-          earned: isEarned,
-          earnedDate: earnedAt,
+        earnedAchievements[item['achievement_id']] = DateTime.parse(
+          item['earned_at'],
         );
-      }).toList();
-      
+      }
+
+      // Create achievement objects with earned status
+      final achievements =
+          achievementsResponse.map<Achievement>((json) {
+            final achievementId = json['id'];
+            final isEarned = earnedAchievements.containsKey(achievementId);
+            final earnedAt =
+                isEarned ? earnedAchievements[achievementId] : null;
+
+            return Achievement.fromJson(
+              json,
+              earned: isEarned,
+              earnedDate: earnedAt,
+            );
+          }).toList();
+
       return achievements;
     } catch (e) {
       debugPrint('Error getting achievements: $e');
@@ -203,18 +252,18 @@ class StreakService {
       if (userId == null) {
         throw Exception('User not authenticated');
       }
-      
+
       final response = await SupabaseService.client
           .from('user_achievements')
           .select('achievements(*), earned_at')
           .eq('user_id', userId);
-      
+
       return response.map<Achievement>((item) {
         final achievementJson = item['achievements'];
         final earnedAt = DateTime.parse(item['earned_at']);
-        
+
         return Achievement.fromJson(
-          achievementJson, 
+          achievementJson,
           earned: true,
           earnedDate: earnedAt,
         );
@@ -224,4 +273,51 @@ class StreakService {
       return [];
     }
   }
-} 
+
+  /// Get the number of available streak freezes for the current user
+  static Future<StreakFreeze?> getAvailableStreakFreezes() async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response =
+          await SupabaseService.client
+              .from('streak_freezes')
+              .select()
+              .eq('user_id', userId)
+              .maybeSingle();
+
+      if (response == null) {
+        return StreakFreeze(userId: userId, availableFreezes: 0);
+      }
+
+      return StreakFreeze.fromJson(response);
+    } catch (e) {
+      debugPrint('Error getting streak freezes: $e');
+      return null;
+    }
+  }
+
+  /// Use a streak freeze for the current user
+  /// Returns true if successfully used, false if none available or error
+  static Future<bool> useStreakFreeze() async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response = await SupabaseService.client.rpc(
+        'use_streak_freeze',
+        params: {'user_id_param': userId},
+      );
+
+      return response ?? false;
+    } catch (e) {
+      debugPrint('Error using streak freeze: $e');
+      return false;
+    }
+  }
+}

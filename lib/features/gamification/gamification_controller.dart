@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class GamificationState {
   final UserStreak? userStreak;
   final UserLevel? userLevel;
+  final StreakFreeze? streakFreeze;
   final List<Achievement> achievements;
   final List<Achievement> earnedAchievements;
   final bool isLoading;
@@ -14,6 +15,7 @@ class GamificationState {
   GamificationState({
     this.userStreak,
     this.userLevel,
+    this.streakFreeze,
     this.achievements = const [],
     this.earnedAchievements = const [],
     this.isLoading = false,
@@ -23,6 +25,7 @@ class GamificationState {
   GamificationState copyWith({
     UserStreak? userStreak,
     UserLevel? userLevel,
+    StreakFreeze? streakFreeze,
     List<Achievement>? achievements,
     List<Achievement>? earnedAchievements,
     bool? isLoading,
@@ -31,6 +34,7 @@ class GamificationState {
     return GamificationState(
       userStreak: userStreak ?? this.userStreak,
       userLevel: userLevel ?? this.userLevel,
+      streakFreeze: streakFreeze ?? this.streakFreeze,
       achievements: achievements ?? this.achievements,
       earnedAchievements: earnedAchievements ?? this.earnedAchievements,
       isLoading: isLoading ?? this.isLoading,
@@ -73,6 +77,9 @@ class GamificationController extends StateNotifier<GamificationState> {
       // Load user level data
       final userLevel = await StreakService.getUserLevel();
 
+      // Load streak freezes data
+      final streakFreeze = await StreakService.getAvailableStreakFreezes();
+
       // Load achievements
       final achievements = await StreakService.getAchievements();
 
@@ -84,6 +91,7 @@ class GamificationController extends StateNotifier<GamificationState> {
           state.copyWith(
             userStreak: userStreak,
             userLevel: userLevel,
+            streakFreeze: streakFreeze,
             achievements: achievements,
             earnedAchievements: earnedAchievements,
             isLoading: false,
@@ -96,6 +104,26 @@ class GamificationController extends StateNotifier<GamificationState> {
       if (mounted) {
         _safeUpdateState(state.copyWith(isLoading: false, error: e.toString()));
       }
+    }
+  }
+
+  /// Use a streak freeze and refresh the data
+  Future<bool> useStreakFreeze() async {
+    try {
+      final result = await StreakService.useStreakFreeze();
+
+      if (result) {
+        // Refresh streak freeze data
+        final streakFreeze = await StreakService.getAvailableStreakFreezes();
+        if (mounted) {
+          _safeUpdateState(state.copyWith(streakFreeze: streakFreeze));
+        }
+      }
+
+      return result;
+    } catch (e) {
+      debugPrint('Error using streak freeze: $e');
+      return false;
     }
   }
 
