@@ -8,6 +8,8 @@ import 'package:deltamind/features/dashboard/dashboard_page.dart';
 import 'package:deltamind/features/gamification/achievements_page.dart';
 import 'package:deltamind/features/gamification/streak_freeze_page.dart';
 import 'package:deltamind/features/navigation/scaffold_with_nav_bar.dart';
+import 'package:deltamind/features/notes/notes_list_page.dart';
+import 'package:deltamind/features/notes/create_edit_note_page.dart';
 import 'package:deltamind/features/onboarding/onboarding_page.dart';
 import 'package:deltamind/features/profile/profile_page.dart';
 import 'package:deltamind/features/quiz/create_quiz_page.dart';
@@ -111,11 +113,14 @@ final _routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.quizList,
-            builder: (context, state) => const QuizListPage(),
-          ),
-          GoRoute(
-            path: AppRoutes.history,
-            builder: (context, state) => const HistoryPage(),
+            builder: (context, state) {
+              final extra = state.extra;
+              int initialTabIndex = 0;
+              if (extra != null && extra is int) {
+                initialTabIndex = extra;
+              }
+              return QuizListPage(initialTabIndex: initialTabIndex);
+            },
           ),
           GoRoute(
             path: AppRoutes.createQuiz,
@@ -132,6 +137,23 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.streakFreeze,
             builder: (context, state) => const StreakFreezePage(),
+          ),
+          GoRoute(
+            path: AppRoutes.notesList,
+            builder: (context, state) => const NotesListPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.createNote,
+            builder: (context, state) {
+              return const CreateEditNotePage();
+            },
+          ),
+          GoRoute(
+            path: '/notes/:id',
+            builder: (context, state) {
+              final noteId = state.pathParameters['id']!;
+              return CreateEditNotePage(noteId: noteId);
+            },
           ),
           GoRoute(
             path: '/quiz/:id',

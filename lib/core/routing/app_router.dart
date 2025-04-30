@@ -15,6 +15,8 @@ import 'package:deltamind/features/splash/splash_screen.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:deltamind/features/notes/notes_list_page.dart';
+import 'package:deltamind/features/notes/create_edit_note_page.dart';
 
 /// App routes constants
 class AppRoutes {
@@ -48,9 +50,6 @@ class AppRoutes {
   /// Take quiz route
   static const String takeQuiz = '/quiz/:id';
 
-  /// History route
-  static const String history = '/history';
-
   /// Quiz review detail route
   static const String quizReviewDetail = '/quiz-review/:id';
 
@@ -62,6 +61,15 @@ class AppRoutes {
 
   /// Streak freeze route
   static const String streakFreeze = '/streak-freeze';
+
+  /// Notes list route
+  static const String notesList = '/notes';
+
+  /// Create note route
+  static const String createNote = '/notes/create';
+
+  /// Edit note route
+  static const String editNote = '/notes/:id';
 }
 
 /// App router configuration
@@ -100,10 +108,6 @@ final List<GoRoute> appRoutes = [
     builder: (context, state) => const CreateQuizPage(),
   ),
   GoRoute(
-    path: AppRoutes.history,
-    builder: (context, state) => const HistoryPage(),
-  ),
-  GoRoute(
     path: AppRoutes.achievements,
     builder: (context, state) => const AchievementsPage(),
   ),
@@ -114,6 +118,23 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.streakFreeze,
     builder: (context, state) => const StreakFreezePage(),
+  ),
+  GoRoute(
+    path: AppRoutes.notesList,
+    builder: (context, state) => const NotesListPage(),
+  ),
+  GoRoute(
+    path: AppRoutes.createNote,
+    builder: (context, state) {
+      return const CreateEditNotePage();
+    },
+  ),
+  GoRoute(
+    path: '/notes/:id',
+    builder: (context, state) {
+      final noteId = state.pathParameters['id']!;
+      return CreateEditNotePage(noteId: noteId);
+    },
   ),
   GoRoute(
     path: '/quiz-review/:id',

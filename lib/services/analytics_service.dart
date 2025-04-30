@@ -477,7 +477,7 @@ class AnalyticsService {
       try {
         final response = await SupabaseService.client
             .from('quiz_attempts')
-            .select('created_at, correct_answers, total_questions')
+            .select('created_at, score, total_questions')
             .eq('user_id', userId)
             .eq('completed', true)
             .gte('created_at', formattedDate)
@@ -506,8 +506,7 @@ class AnalyticsService {
             int totalQuestions = 0;
 
             for (final attempt in attempts) {
-              totalCorrect +=
-                  (attempt['correct_answers'] as num?)?.toInt() ?? 0;
+              totalCorrect += (attempt['score'] as num?)?.toInt() ?? 0;
               totalQuestions +=
                   (attempt['total_questions'] as num?)?.toInt() ?? 0;
             }

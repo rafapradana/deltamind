@@ -3,6 +3,7 @@ import 'package:deltamind/core/theme/app_theme.dart';
 import 'package:deltamind/features/auth/register_page.dart';
 import 'package:deltamind/features/dashboard/dashboard_page.dart';
 import 'package:deltamind/services/supabase_service.dart';
+import 'package:deltamind/widgets/google_logo.dart';
 import 'package:deltamind/widgets/loading_button.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,9 +47,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const DashboardPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const DashboardPage()),
         );
       }
     } on AuthException catch (e) {
@@ -95,19 +94,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _navigateToRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const RegisterPage(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const RegisterPage()));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: AppBar(title: const Text('Login')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -215,8 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'OR',
-                        style:
-                            TextStyle(color: Colors.grey[600], fontSize: 14),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                     ),
                     const Expanded(child: Divider()),
@@ -225,10 +219,23 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
 
                 // Google sign in
-                OutlinedButton.icon(
+                OutlinedButton(
                   onPressed: _isLoading ? null : _signInWithGoogle,
-                  icon: const Icon(Icons.login),
-                  label: const Text('Sign in with Google'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const GoogleLogo(size: 24),
+                      const SizedBox(width: 12),
+                      const Text('Sign in with Google'),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
 
@@ -253,4 +260,4 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-} 
+}

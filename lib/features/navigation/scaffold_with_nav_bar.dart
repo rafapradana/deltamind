@@ -8,10 +8,7 @@ class ScaffoldWithNavBar extends StatefulWidget {
   final Widget child;
 
   /// Creates a [ScaffoldWithNavBar]
-  const ScaffoldWithNavBar({
-    Key? key,
-    required this.child,
-  }) : super(key: key);
+  const ScaffoldWithNavBar({Key? key, required this.child}) : super(key: key);
 
   @override
   State<ScaffoldWithNavBar> createState() => _ScaffoldWithNavBarState();
@@ -20,14 +17,14 @@ class ScaffoldWithNavBar extends StatefulWidget {
 class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
-    
+
     if (location.startsWith(AppRoutes.dashboard)) {
       return 0;
     }
     if (location.startsWith(AppRoutes.quizList)) {
       return 1;
     }
-    if (location.startsWith(AppRoutes.history)) {
+    if (location.startsWith(AppRoutes.notesList)) {
       return 2;
     }
     if (location.startsWith(AppRoutes.analytics)) {
@@ -48,7 +45,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
         context.go(AppRoutes.quizList);
         break;
       case 2:
-        context.go(AppRoutes.history);
+        context.go(AppRoutes.notesList);
         break;
       case 3:
         context.go(AppRoutes.analytics);
@@ -72,24 +69,15 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
             icon: Icon(Icons.dashboard),
             label: 'Dashboard',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.quiz),
-            label: 'Quizzes',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.quiz), label: 'Quizzes'),
+          BottomNavigationBarItem(icon: Icon(Icons.notes), label: 'Notes'),
           BottomNavigationBarItem(
             icon: Icon(Icons.analytics),
             label: 'Analytics',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
   }
-} 
+}

@@ -122,6 +122,62 @@ class Question {
   }
 }
 
+/// Model class for Quiz Attempt
+class QuizAttempt {
+  final String id;
+  final String? quizId;
+  final String quizTitle;
+  final int correctAnswers;
+  final int totalQuestions;
+  final int timeTaken;
+  final DateTime? completedAt;
+  final String? quizType;
+  final String? difficulty;
+
+  QuizAttempt({
+    required this.id,
+    this.quizId,
+    required this.quizTitle,
+    required this.correctAnswers,
+    required this.totalQuestions,
+    required this.timeTaken,
+    this.completedAt,
+    this.quizType,
+    this.difficulty,
+  });
+
+  factory QuizAttempt.fromJson(Map<String, dynamic> json) {
+    return QuizAttempt(
+      id: json['id'],
+      quizId: json['quiz_id'],
+      quizTitle: json['quiz_title'] ?? 'Untitled Quiz',
+      correctAnswers: json['score'] ?? json['correct_answers'] ?? 0,
+      totalQuestions: json['total_questions'] ?? 0,
+      timeTaken: json['time_taken'] ?? 0,
+      completedAt:
+          json['completed_at'] != null
+              ? DateTime.parse(json['completed_at'])
+              : null,
+      quizType: json['quiz_type'],
+      difficulty: json['difficulty'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'quiz_id': quizId,
+      'quiz_title': quizTitle,
+      'score': correctAnswers,
+      'total_questions': totalQuestions,
+      'time_taken': timeTaken,
+      'completed_at': completedAt?.toIso8601String(),
+      'quiz_type': quizType,
+      'difficulty': difficulty,
+    };
+  }
+}
+
 /// Service for managing quizzes
 class QuizService {
   /// Create a new quiz
