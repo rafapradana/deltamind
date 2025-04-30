@@ -26,19 +26,74 @@ import 'package:deltamind/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize services
   try {
-    await SupabaseService.initialize();
-    await GeminiService.initialize();
-  } catch (e) {
-    debugPrint('Error initializing services: $e');
-  }
+    // Load .env file first
+    await dotenv.load();
 
-  runApp(const ProviderScope(child: MyApp()));
+    // Add a small delay to ensure environment variables are properly loaded
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Initialize Supabase with proper error handling
+    await SupabaseService.initialize().catchError((error) {
+      debugPrint('Failed to initialize Supabase: $error');
+      // Rethrow to be caught by the outer try-catch
+      throw error;
+    });
+
+    // Initialize other services
+    await GeminiService.initialize();
+
+    // Add another small delay to ensure all services are initialized
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    runApp(const ProviderScope(child: MyApp()));
+  } catch (e) {
+    debugPrint('Critical error initializing services: $e');
+    // Show an error UI instead of crashing
+    runApp(MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.red,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 60, color: Colors.white),
+                const SizedBox(height: 20),
+                Text(
+                  'Failed to initialize the app',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Error: $e',
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Please check your internet connection and restart the app.',
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 /// App router provider

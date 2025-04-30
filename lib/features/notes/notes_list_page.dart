@@ -1,6 +1,7 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/features/notes/notes_controller.dart';
+import 'package:deltamind/features/notes/widgets/rich_text_editor.dart';
 import 'package:deltamind/models/note.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -290,6 +291,13 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       color: backgroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: Colors.grey.withOpacity(0.3),
+          width: 1.0,
+        ),
+      ),
       child: InkWell(
         onTap: () => context.go('/notes/${note.id}'),
         child: Stack(
@@ -333,11 +341,11 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                   ),
                   const SizedBox(height: 8),
                   if (note.content != null && note.content!.isNotEmpty)
-                    Expanded(
-                      child: Text(
-                        note.content!,
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 8),
+                      child: RichTextViewer(
+                        content: note.content,
+                        maxHeight: 100,
                       ),
                     ),
                   if (note.tags.isNotEmpty)

@@ -10,15 +10,36 @@ class SupabaseService {
   /// Initialize Supabase client
   static Future<void> initialize() async {
     try {
-      await dotenv.load();
+      // Make sure dotenv is loaded
+      if (dotenv.env.isEmpty) {
+        debugPrint(
+            'Warning: .env file seems empty, attempting to load it again');
+        await dotenv.load();
+      }
 
+      // Get Supabase credentials from .env
+      final url = SupabaseConfig.urlFromEnv;
+      final anonKey = SupabaseConfig.anonKeyFromEnv;
+
+      // Validate credentials before initialization
+      if (url.isEmpty ||
+          url.contains('YOUR_SUPABASE_URL') ||
+          anonKey.isEmpty ||
+          anonKey.contains('YOUR_SUPABASE_ANON_KEY')) {
+        throw Exception('Invalid Supabase credentials. Check your .env file.');
+      }
+
+      // Initialize Supabase with credentials
       await Supabase.initialize(
-        url: SupabaseConfig.urlFromEnv,
-        anonKey: SupabaseConfig.anonKeyFromEnv,
+        url: url,
+        anonKey: anonKey,
         debug: kDebugMode,
       );
 
-      debugPrint('Supabase initialized successfully');
+      // Verify client is accessible
+      Supabase.instance.client;
+
+      debugPrint('Supabase initialized successfully with URL: $url');
     } catch (e) {
       debugPrint('Error initializing Supabase: $e');
       rethrow;
@@ -121,18 +142,15 @@ class SupabaseService {
           '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
       // Upload file to Supabase Storage
-      final uploadPath = await client.storage
-          .from('avatars')
-          .uploadBinary(
+      final uploadPath = await client.storage.from('avatars').uploadBinary(
             uniqueFileName,
             fileBytes,
             fileOptions: FileOptions(contentType: fileType),
           );
 
       // Create a public URL for the image
-      final avatarUrl = client.storage
-          .from('avatars')
-          .getPublicUrl(uniqueFileName);
+      final avatarUrl =
+          client.storage.from('avatars').getPublicUrl(uniqueFileName);
 
       // Update the user's profile with the new avatar URL
       await updateUserProfile(userId: userId, avatarUrl: avatarUrl);
@@ -264,12 +282,11 @@ class SupabaseService {
       }
 
       // Verify that this user owns the attempt
-      final attemptResponse =
-          await client
-              .from('quiz_attempts')
-              .select('user_id')
-              .eq('id', quizAttemptId)
-              .maybeSingle();
+      final attemptResponse = await client
+          .from('quiz_attempts')
+          .select('user_id')
+          .eq('id', quizAttemptId)
+          .maybeSingle();
 
       if (attemptResponse == null) {
         debugPrint('Quiz attempt not found');
@@ -299,16 +316,12 @@ class SupabaseService {
           .eq('quiz_attempt_id', quizAttemptId);
 
       // 3. Finally delete the quiz attempt itself
-      final deleteResponse = await client
-          .from('quiz_attempts')
-          .delete()
-          .eq('id', quizAttemptId);
+      final deleteResponse =
+          await client.from('quiz_attempts').delete().eq('id', quizAttemptId);
 
       // Verify deletion was successful
-      final verifyResponse = await client
-          .from('quiz_attempts')
-          .select()
-          .eq('id', quizAttemptId);
+      final verifyResponse =
+          await client.from('quiz_attempts').select().eq('id', quizAttemptId);
 
       final isDeleted = verifyResponse.isEmpty;
       debugPrint(
@@ -348,13 +361,12 @@ class SupabaseService {
       debugPrint('Attempting forced deletion as fallback for $quizAttemptId');
 
       // First check if the user actually owns this quiz attempt as a safety measure
-      final ownershipCheck =
-          await client
-              .from('quiz_attempts')
-              .select('id')
-              .eq('id', quizAttemptId)
-              .eq('user_id', userId)
-              .maybeSingle();
+      final ownershipCheck = await client
+          .from('quiz_attempts')
+          .select('id')
+          .eq('id', quizAttemptId)
+          .eq('user_id', userId)
+          .maybeSingle();
 
       if (ownershipCheck == null) {
         debugPrint('Ownership verification failed for fallback deletion');
@@ -409,10 +421,8 @@ class SupabaseService {
       }
 
       // Verify deletion succeeded
-      final verifyDeletion = await client
-          .from('quiz_attempts')
-          .select()
-          .eq('id', quizAttemptId);
+      final verifyDeletion =
+          await client.from('quiz_attempts').select().eq('id', quizAttemptId);
 
       final success = verifyDeletion.isEmpty;
       debugPrint('Forced deletion ${success ? 'SUCCEEDED' : 'FAILED'}');
@@ -426,12 +436,11 @@ class SupabaseService {
   /// Check if a quiz attempt exists by ID
   static Future<bool> checkQuizAttemptExists(String attemptId) async {
     try {
-      final response =
-          await client
-              .from('quiz_attempts')
-              .select('id')
-              .eq('id', attemptId)
-              .maybeSingle();
+      final response = await client
+          .from('quiz_attempts')
+          .select('id')
+          .eq('id', attemptId)
+          .maybeSingle();
 
       return response != null;
     } catch (e) {

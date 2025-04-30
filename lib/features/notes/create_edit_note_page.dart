@@ -10,6 +10,7 @@ import 'package:deltamind/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_quill/flutter_quill.dart' hide Text;
 
 /// Timer for auto-save feature
 final autoSaveTimerProvider = Provider<int>((ref) => 3000); // 3 seconds
@@ -33,6 +34,7 @@ class _CreateEditNotePageState extends ConsumerState<CreateEditNotePage> {
   final TextEditingController _titleController = TextEditingController();
   String? _content;
   final FocusNode _titleFocusNode = FocusNode();
+  late QuillController _editorController;
 
   bool _isPinned = false;
   String? _noteColor;
@@ -43,10 +45,17 @@ class _CreateEditNotePageState extends ConsumerState<CreateEditNotePage> {
   bool _isDirty = false;
   Timer? _autoSaveTimer;
   bool _isSaving = false;
+  final FocusNode _editorFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize editor controller with empty document
+    _editorController = QuillController.basic();
+
+    // Setup listeners and load note data
+    _setupEditorListener();
     _loadNote();
 
     // Set up title change listener for auto-save
@@ -57,6 +66,8 @@ class _CreateEditNotePageState extends ConsumerState<CreateEditNotePage> {
   void dispose() {
     _titleController.dispose();
     _titleFocusNode.dispose();
+    _editorController.dispose();
+    _editorFocusNode.dispose();
     _autoSaveTimer?.cancel();
     super.dispose();
   }
@@ -77,8 +88,39 @@ class _CreateEditNotePageState extends ConsumerState<CreateEditNotePage> {
   }
 
   void _onEditorContentChanged(String newContent) {
-    _content = newContent;
-    _onContentChanged();
+    setState(() {
+      _content = newContent;
+      _isDirty = true;
+    });
+
+    // Reset the auto-save timer
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(
+      Duration(milliseconds: ref.read(autoSaveTimerProvider)),
+      _autoSave,
+    );
+  }
+
+  void _setupEditorListener() {
+    // Listen for changes in the editor
+    _editorController.document.changes.listen((event) {
+      if (!_isDirty) {
+        setState(() {
+          _isDirty = true;
+        });
+      }
+
+      // Update content and trigger auto-save
+      final json = jsonEncode(_editorController.document.toDelta().toJson());
+      _content = json;
+
+      // Reset the auto-save timer
+      _autoSaveTimer?.cancel();
+      _autoSaveTimer = Timer(
+        Duration(milliseconds: ref.read(autoSaveTimerProvider)),
+        _autoSave,
+      );
+    });
   }
 
   Future<void> _autoSave() async {
@@ -114,6 +156,19 @@ class _CreateEditNotePageState extends ConsumerState<CreateEditNotePage> {
         _isPinned = note.isPinned;
         _noteColor = note.color;
         _tags = List.from(note.tags);
+
+        // Initialize editor controller with loaded content
+        if (_content != null && _content!.isNotEmpty) {
+          try {
+            final json = jsonDecode(_content!);
+            _editorController = QuillController(
+              document: Document.fromJson(json),
+              selection: const TextSelection.collapsed(offset: 0),
+            );
+          } catch (e) {
+            _editorController = QuillController.basic();
+          }
+        }
       }
     } catch (e) {
       // Handle error
@@ -506,11 +561,20 @@ class _CreateEditNotePageState extends ConsumerState<CreateEditNotePage> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
+                  // Rich text toolbar at the top (only shown in edit mode)
+                  if (!_isLoading)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
+                      child: RichTextEditor.toolbarWithController(
+                          _editorController),
+                    ),
+
                   // Tags display
                   if (_tags.isNotEmpty)
                     Container(
-                      margin:
-                          const EdgeInsets.only(top: 8, left: 16, right: 16),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
                       child: Wrap(
                         spacing: 8.0,
                         runSpacing: 4.0,
@@ -548,39 +612,68 @@ class _CreateEditNotePageState extends ConsumerState<CreateEditNotePage> {
                       ),
                     ),
 
-                  // Title field
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(left: 20, right: 20, top: 16),
-                    child: TextField(
-                      controller: _titleController,
-                      focusNode: _titleFocusNode,
-                      decoration: InputDecoration(
-                        hintText: 'Title',
-                        hintStyle: TextStyle(
-                          color: theme.hintColor.withOpacity(0.7),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 24,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 24,
-                        height: 1.3,
-                      ),
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
-                    ),
-                  ),
-
-                  // Rich text editor
+                  // Content area with consistent background color
                   Expanded(
-                    child: RichTextEditor(
-                      initialContent: _content,
-                      onContentChanged: _onEditorContentChanged,
-                      readOnly: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title field
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
+                          child: TextField(
+                            controller: _titleController,
+                            focusNode: _titleFocusNode,
+                            decoration: InputDecoration(
+                              hintText: 'Title',
+                              hintStyle: TextStyle(
+                                color: theme.hintColor.withOpacity(0.7),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 24,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                              fillColor: Colors.transparent,
+                            ),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 24,
+                              height: 1.3,
+                            ),
+                            maxLines: null,
+                            textCapitalization: TextCapitalization.sentences,
+                          ),
+                        ),
+
+                        // Visual hint for users
+                        if (_content == null || _content!.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              'Ketuk di sini untuk mulai menulis...',
+                              style: TextStyle(
+                                color: theme.hintColor.withOpacity(0.6),
+                                fontStyle: FontStyle.italic,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+
+                        // Rich text editor without its toolbar - wrapped in Expanded
+                        Expanded(
+                          child: RichTextEditor(
+                            initialContent: _content,
+                            onContentChanged: _onEditorContentChanged,
+                            readOnly: false,
+                            showToolbar: false,
+                            controller: _editorController,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
