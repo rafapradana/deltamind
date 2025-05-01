@@ -4,6 +4,7 @@ import 'package:deltamind/services/streak_service.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:deltamind/features/gamification/widgets/streak_freeze_countdown.dart';
 
 class StreakCard extends StatelessWidget {
   final UserStreak streak;
@@ -256,8 +257,7 @@ class StreakCard extends StatelessWidget {
         final streakStartDate = streak.lastActivityDate.subtract(
           Duration(days: streak.currentStreak - 1),
         );
-        isActive =
-            !date.isBefore(streakStartDate) &&
+        isActive = !date.isBefore(streakStartDate) &&
             !date.isAfter(streak.lastActivityDate);
       }
 
@@ -279,10 +279,9 @@ class StreakCard extends StatelessWidget {
     bool isToday,
   ) {
     final theme = Theme.of(context);
-    final barColor =
-        isActive
-            ? AppColors.accent
-            : theme.colorScheme.onSurface.withOpacity(0.1);
+    final barColor = isActive
+        ? AppColors.accent
+        : theme.colorScheme.onSurface.withOpacity(0.1);
     final barHeight = isActive ? 40.0 : 15.0;
 
     return Column(
@@ -295,16 +294,15 @@ class StreakCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: barColor,
             borderRadius: BorderRadius.circular(4),
-            boxShadow:
-                isActive
-                    ? [
-                      BoxShadow(
-                        color: AppColors.accent.withOpacity(0.3),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                    : null,
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: AppColors.accent.withOpacity(0.3),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
         ),
         const SizedBox(height: 8),
@@ -313,10 +311,9 @@ class StreakCard extends StatelessWidget {
           child: Text(
             dayName,
             style: theme.textTheme.bodySmall?.copyWith(
-              color:
-                  isToday
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
+              color: isToday
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withOpacity(0.7),
               fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
               fontSize: 10, // Smaller font size to avoid overflow
             ),
@@ -382,19 +379,11 @@ class StreakCard extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
 
-    // Format the expiry time
-    String expiryText = 'Active';
+    // Check if already expired
     if (expiryTime != null) {
       final now = DateTime.now();
-      final difference = expiryTime.difference(now);
-      if (difference.inDays > 0) {
-        expiryText = 'Expires tomorrow';
-      } else if (difference.inHours > 0) {
-        expiryText = 'Expires in ${difference.inHours} hours';
-      } else if (difference.inMinutes > 0) {
-        expiryText = 'Expires in ${difference.inMinutes} minutes';
-      } else {
-        expiryText = 'Expires soon';
+      if (expiryTime.isBefore(now)) {
+        return const SizedBox.shrink();
       }
     }
 
@@ -417,6 +406,7 @@ class StreakCard extends StatelessWidget {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -448,41 +438,12 @@ class StreakCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: Colors.blue.shade700,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  expiryText,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.blue.shade900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  PhosphorIconsFill.clock,
-                  color: Colors.blue.shade700,
-                  size: 12,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  expiryTime != null
-                      ? DateFormat('HH:mm').format(expiryTime)
-                      : '--:--',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
-                  ),
+                const SizedBox(height: 4),
+                StreakFreezeCountdown(
+                  expiryTime: expiryTime,
+                  textColor: Colors.blue.shade900,
                 ),
               ],
             ),

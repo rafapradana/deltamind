@@ -1,10 +1,12 @@
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/features/gamification/gamification_controller.dart';
 import 'package:deltamind/features/gamification/widgets/streak_freeze_card.dart';
+import 'package:deltamind/features/gamification/widgets/streak_freeze_countdown.dart';
 import 'package:deltamind/services/streak_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:intl/intl.dart';
 
 class StreakFreezePage extends ConsumerStatefulWidget {
   const StreakFreezePage({Key? key}) : super(key: key);
@@ -46,7 +48,7 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
               if (streakFreeze != null)
                 StreakFreezeCard(
                   streakFreeze: streakFreeze,
-                  onUseFreeze: _handleUseFreeze,
+                  onUseFreeze: _useStreakFreeze,
                 ),
 
               const SizedBox(height: 24),
@@ -130,7 +132,6 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
               ),
             ],
           ),
-
           if (streak.isStreakFreezeActive &&
               streak.streakFreezeExpiry != null) ...[
             const SizedBox(height: 16),
@@ -142,6 +143,7 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     PhosphorIconsFill.snowflake,
@@ -150,12 +152,23 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      'Streak Freeze Active - Expires ${_formatExpiryTime(streak.streakFreezeExpiry!)}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Streak Freeze Active',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        StreakFreezeCountdown(
+                          expiryTime: streak.streakFreezeExpiry,
+                          textColor: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -269,9 +282,9 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
 
   Widget _buildUsageHistorySection(BuildContext context) {
     final theme = Theme.of(context);
+    final gamificationState = ref.watch(gamificationControllerProvider);
+    final history = gamificationState.freezeHistory;
 
-    // This would normally be populated from actual usage history
-    // For now, we'll show a placeholder message
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -282,47 +295,186 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
           ),
         ),
         const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.3),
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                PhosphorIconsFill.clock,
-                size: 40,
-                color: theme.colorScheme.primary.withOpacity(0.5),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'No usage history yet',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Your streak freeze usage history will appear here',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+        if (history.isEmpty)
+          _buildEmptyHistoryCard(context)
+        else
+          _buildHistoryList(context, history),
       ],
     );
   }
 
-  Future<void> _handleUseFreeze() async {
+  Widget _buildEmptyHistoryCard(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            PhosphorIconsFill.clock,
+            size: 40,
+            color: theme.colorScheme.primary.withOpacity(0.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No usage history yet',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your streak freeze usage history will appear here',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryList(
+      BuildContext context, List<StreakFreezeHistory> history) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          ...history.map((item) => _buildHistoryItem(context, item)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(BuildContext context, StreakFreezeHistory item) {
+    final theme = Theme.of(context);
+    final isActive = item.isActive;
+    final dateFormat = DateFormat('MMM d, yyyy');
+    final timeFormat = DateFormat('h:mm a');
+    final gamificationState = ref.watch(gamificationControllerProvider);
+    final history = gamificationState.freezeHistory;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? Colors.blue.withOpacity(0.1)
+                      : Colors.grey.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  PhosphorIconsFill.snowflake,
+                  color: isActive ? Colors.blue : Colors.grey,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isActive ? 'Active Streak Freeze' : 'Streak Freeze Used',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isActive ? theme.colorScheme.primary : null,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Used on ${dateFormat.format(item.usedAt)} at ${timeFormat.format(item.usedAt)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                    if (!isActive && item.expiredAt != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Expired on ${dateFormat.format(item.expiredAt!)} at ${timeFormat.format(item.expiredAt!)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ] else if (isActive && item.expiredAt != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Expires on ${dateFormat.format(item.expiredAt!)} at ${timeFormat.format(item.expiredAt!)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? Colors.blue.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            PhosphorIconsFill.clock,
+                            size: 12,
+                            color: isActive
+                                ? theme.colorScheme.primary
+                                : Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Duration: ${item.durationText}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: isActive
+                                ? theme.colorScheme.primary
+                                : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (history.last != item)
+          Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.2))
+      ],
+    );
+  }
+
+  void _useStreakFreeze() async {
     if (_isLoading) return;
 
     setState(() {
@@ -330,10 +482,9 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
     });
 
     try {
-      final success =
-          await ref
-              .read(gamificationControllerProvider.notifier)
-              .useStreakFreeze();
+      final success = await ref
+          .read(gamificationControllerProvider.notifier)
+          .useStreakFreeze();
 
       if (!mounted) return;
 
@@ -359,21 +510,6 @@ class _StreakFreezePageState extends ConsumerState<StreakFreezePage> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  String _formatExpiryTime(DateTime expiryTime) {
-    final now = DateTime.now();
-    final difference = expiryTime.difference(now);
-
-    if (difference.inDays > 0) {
-      return 'tomorrow';
-    } else if (difference.inHours > 0) {
-      return 'in ${difference.inHours}h ${difference.inMinutes % 60}m';
-    } else if (difference.inMinutes > 0) {
-      return 'in ${difference.inMinutes}m';
-    } else {
-      return 'soon';
     }
   }
 }

@@ -27,15 +27,13 @@ class UserStreak {
       currentStreak: json['current_streak'] ?? 0,
       longestStreak: json['longest_streak'] ?? 0,
       lastActivityDate: DateTime.parse(json['last_activity_date']),
-      streakStartDate:
-          json['streak_start_date'] != null
-              ? DateTime.parse(json['streak_start_date'])
-              : null,
+      streakStartDate: json['streak_start_date'] != null
+          ? DateTime.parse(json['streak_start_date'])
+          : null,
       isStreakFreezeActive: json['is_streak_freeze_active'] ?? false,
-      streakFreezeExpiry:
-          json['streak_freeze_expiry'] != null
-              ? DateTime.parse(json['streak_freeze_expiry'])
-              : null,
+      streakFreezeExpiry: json['streak_freeze_expiry'] != null
+          ? DateTime.parse(json['streak_freeze_expiry'])
+          : null,
     );
   }
 }
@@ -58,14 +56,12 @@ class StreakFreeze {
     return StreakFreeze(
       userId: json['user_id'],
       availableFreezes: json['available_freezes'] ?? 0,
-      createdAt:
-          json['created_at'] != null
-              ? DateTime.parse(json['created_at'])
-              : null,
-      updatedAt:
-          json['updated_at'] != null
-              ? DateTime.parse(json['updated_at'])
-              : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
     );
   }
 }
@@ -151,6 +147,77 @@ class UserLevel {
   }
 }
 
+/// Model class for streak freeze usage history
+class StreakFreezeHistory {
+  final String id;
+  final String userId;
+  final DateTime usedAt;
+  final DateTime? expiredAt;
+  final DateTime? createdAt;
+
+  // Calculate status based on expiry
+  bool get isActive => expiredAt == null || expiredAt!.isAfter(DateTime.now());
+
+  // Calculate duration
+  Duration get duration {
+    if (expiredAt == null) {
+      return DateTime.now().difference(usedAt);
+    } else {
+      return expiredAt!.difference(usedAt);
+    }
+  }
+
+  // Format duration as string
+  String get durationText {
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
+
+    final parts = <String>[];
+
+    if (days > 0) {
+      parts.add('$days day${days > 1 ? 's' : ''}');
+    }
+
+    if (hours > 0) {
+      parts.add('$hours hour${hours > 1 ? 's' : ''}');
+    }
+
+    if (minutes > 0 && days == 0) {
+      // Only show minutes if less than a day
+      parts.add('$minutes minute${minutes > 1 ? 's' : ''}');
+    }
+
+    if (parts.isEmpty) {
+      return 'Less than a minute';
+    }
+
+    return parts.join(' ');
+  }
+
+  StreakFreezeHistory({
+    required this.id,
+    required this.userId,
+    required this.usedAt,
+    this.expiredAt,
+    this.createdAt,
+  });
+
+  factory StreakFreezeHistory.fromJson(Map<String, dynamic> json) {
+    return StreakFreezeHistory(
+      id: json['id'],
+      userId: json['user_id'],
+      usedAt: DateTime.parse(json['used_at']),
+      expiredAt: json['expired_at'] != null
+          ? DateTime.parse(json['expired_at'])
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+    );
+  }
+}
+
 /// Service for managing streaks and achievements
 class StreakService {
   /// Get the current user's streak information
@@ -161,12 +228,11 @@ class StreakService {
         throw Exception('User not authenticated');
       }
 
-      final response =
-          await SupabaseService.client
-              .from('user_streaks')
-              .select()
-              .eq('user_id', userId)
-              .single();
+      final response = await SupabaseService.client
+          .from('user_streaks')
+          .select()
+          .eq('user_id', userId)
+          .single();
 
       return UserStreak.fromJson(response);
     } catch (e) {
@@ -183,12 +249,11 @@ class StreakService {
         throw Exception('User not authenticated');
       }
 
-      final response =
-          await SupabaseService.client
-              .from('user_levels')
-              .select()
-              .eq('user_id', userId)
-              .single();
+      final response = await SupabaseService.client
+          .from('user_levels')
+          .select()
+          .eq('user_id', userId)
+          .single();
 
       return UserLevel.fromJson(response);
     } catch (e) {
@@ -224,19 +289,17 @@ class StreakService {
       }
 
       // Create achievement objects with earned status
-      final achievements =
-          achievementsResponse.map<Achievement>((json) {
-            final achievementId = json['id'];
-            final isEarned = earnedAchievements.containsKey(achievementId);
-            final earnedAt =
-                isEarned ? earnedAchievements[achievementId] : null;
+      final achievements = achievementsResponse.map<Achievement>((json) {
+        final achievementId = json['id'];
+        final isEarned = earnedAchievements.containsKey(achievementId);
+        final earnedAt = isEarned ? earnedAchievements[achievementId] : null;
 
-            return Achievement.fromJson(
-              json,
-              earned: isEarned,
-              earnedDate: earnedAt,
-            );
-          }).toList();
+        return Achievement.fromJson(
+          json,
+          earned: isEarned,
+          earnedDate: earnedAt,
+        );
+      }).toList();
 
       return achievements;
     } catch (e) {
@@ -282,12 +345,11 @@ class StreakService {
         throw Exception('User not authenticated');
       }
 
-      final response =
-          await SupabaseService.client
-              .from('streak_freezes')
-              .select()
-              .eq('user_id', userId)
-              .maybeSingle();
+      final response = await SupabaseService.client
+          .from('streak_freezes')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
 
       if (response == null) {
         return StreakFreeze(userId: userId, availableFreezes: 0);
@@ -300,8 +362,56 @@ class StreakService {
     }
   }
 
+  /// Get streak freeze usage history for the current user
+  static Future<List<StreakFreezeHistory>> getStreakFreezeHistory() async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response = await SupabaseService.client
+          .from('streak_freeze_history')
+          .select()
+          .eq('user_id', userId)
+          .order('used_at', ascending: false)
+          .limit(10);
+
+      final history = response
+          .map<StreakFreezeHistory>(
+            (json) => StreakFreezeHistory.fromJson(json),
+          )
+          .toList();
+
+      return history;
+    } catch (e) {
+      debugPrint('Error getting streak freeze history: $e');
+      return [];
+    }
+  }
+
+  /// Get available streak freezes for the current user
+  static Future<StreakFreeze?> getUserStreakFreezes() async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response = await SupabaseService.client
+          .from('streak_freezes')
+          .select()
+          .eq('user_id', userId)
+          .single();
+
+      return StreakFreeze.fromJson(response);
+    } catch (e) {
+      debugPrint('Error getting streak freezes: $e');
+      return null;
+    }
+  }
+
   /// Use a streak freeze for the current user
-  /// Returns true if successfully used, false if none available or error
   static Future<bool> useStreakFreeze() async {
     try {
       final userId = SupabaseService.currentUser?.id;
@@ -309,12 +419,11 @@ class StreakService {
         throw Exception('User not authenticated');
       }
 
-      final response = await SupabaseService.client.rpc(
-        'use_streak_freeze',
-        params: {'user_id_param': userId},
-      );
+      // Call the use_streak_freeze function
+      final response = await SupabaseService.client
+          .rpc('use_streak_freeze', params: {'user_id_param': userId});
 
-      return response ?? false;
+      return response as bool;
     } catch (e) {
       debugPrint('Error using streak freeze: $e');
       return false;

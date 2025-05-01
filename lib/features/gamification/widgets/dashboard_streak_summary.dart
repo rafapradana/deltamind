@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:deltamind/features/gamification/widgets/streak_freeze_countdown.dart';
 
 class DashboardStreakSummary extends ConsumerWidget {
   const DashboardStreakSummary({super.key});
@@ -141,21 +142,11 @@ class DashboardStreakSummary extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
 
-    // Format the expiry time
-    String expiryText = 'Active';
+    // Check if streak freeze has expired
     if (expiryTime != null) {
       final now = DateTime.now();
-      final difference = expiryTime.difference(now);
-      if (difference.inDays > 0) {
-        expiryText =
-            'Expires tomorrow at ${DateFormat('HH:mm').format(expiryTime)}';
-      } else if (difference.inHours > 0) {
-        expiryText =
-            'Expires in ${difference.inHours}h ${difference.inMinutes % 60}m';
-      } else if (difference.inMinutes > 0) {
-        expiryText = 'Expires in ${difference.inMinutes}m';
-      } else {
-        expiryText = 'Expires soon';
+      if (expiryTime.isBefore(now)) {
+        return const SizedBox.shrink();
       }
     }
 
@@ -175,14 +166,24 @@ class DashboardStreakSummary extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              'Streak Freeze: $expiryText',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: Colors.blue.shade700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Streak Freeze: ',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+                Expanded(
+                  child: StreakFreezeCountdown(
+                    expiryTime: expiryTime,
+                    compact: true,
+                    textColor: Colors.blue.shade700,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

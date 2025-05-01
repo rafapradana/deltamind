@@ -5,38 +5,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// State class for streak and gamification data
 class GamificationState {
   final UserStreak? userStreak;
-  final UserLevel? userLevel;
   final StreakFreeze? streakFreeze;
+  final UserLevel? userLevel;
   final List<Achievement> achievements;
   final List<Achievement> earnedAchievements;
+  final List<StreakFreezeHistory> freezeHistory;
   final bool isLoading;
   final String? error;
 
   GamificationState({
     this.userStreak,
-    this.userLevel,
     this.streakFreeze,
+    this.userLevel,
     this.achievements = const [],
     this.earnedAchievements = const [],
+    this.freezeHistory = const [],
     this.isLoading = false,
     this.error,
   });
 
   GamificationState copyWith({
     UserStreak? userStreak,
-    UserLevel? userLevel,
     StreakFreeze? streakFreeze,
+    UserLevel? userLevel,
     List<Achievement>? achievements,
     List<Achievement>? earnedAchievements,
+    List<StreakFreezeHistory>? freezeHistory,
     bool? isLoading,
     String? error,
   }) {
     return GamificationState(
       userStreak: userStreak ?? this.userStreak,
-      userLevel: userLevel ?? this.userLevel,
       streakFreeze: streakFreeze ?? this.streakFreeze,
+      userLevel: userLevel ?? this.userLevel,
       achievements: achievements ?? this.achievements,
       earnedAchievements: earnedAchievements ?? this.earnedAchievements,
+      freezeHistory: freezeHistory ?? this.freezeHistory,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -46,8 +50,8 @@ class GamificationState {
 /// Provider for gamification controller
 final gamificationControllerProvider =
     StateNotifierProvider<GamificationController, GamificationState>((ref) {
-      return GamificationController();
-    });
+  return GamificationController();
+});
 
 /// Controller for managing streaks and achievements
 class GamificationController extends StateNotifier<GamificationState> {
@@ -64,46 +68,42 @@ class GamificationController extends StateNotifier<GamificationState> {
     }
   }
 
-  /// Load all gamification data
+  /// Load all gamification data for the current user
   Future<void> loadGamificationData() async {
-    if (!mounted) return;
+    // Set loading state
+    state = state.copyWith(isLoading: true);
 
     try {
-      _safeUpdateState(state.copyWith(isLoading: true, error: null));
-
-      // Load streak data
+      // Load user streak data
       final userStreak = await StreakService.getUserStreak();
+
+      // Load streak freezes
+      final streakFreeze = await StreakService.getUserStreakFreezes();
 
       // Load user level data
       final userLevel = await StreakService.getUserLevel();
 
-      // Load streak freezes data
-      final streakFreeze = await StreakService.getAvailableStreakFreezes();
-
       // Load achievements
       final achievements = await StreakService.getAchievements();
-
-      // Filter earned achievements
       final earnedAchievements = achievements.where((a) => a.isEarned).toList();
 
-      if (mounted) {
-        _safeUpdateState(
-          state.copyWith(
-            userStreak: userStreak,
-            userLevel: userLevel,
-            streakFreeze: streakFreeze,
-            achievements: achievements,
-            earnedAchievements: earnedAchievements,
-            isLoading: false,
-          ),
-        );
-      }
+      // Load streak freeze history
+      final freezeHistory = await StreakService.getStreakFreezeHistory();
+
+      // Update state with all data
+      state = state.copyWith(
+        userStreak: userStreak,
+        streakFreeze: streakFreeze,
+        userLevel: userLevel,
+        achievements: achievements,
+        earnedAchievements: earnedAchievements,
+        freezeHistory: freezeHistory,
+        isLoading: false,
+      );
     } catch (e) {
       debugPrint('Error loading gamification data: $e');
-
-      if (mounted) {
-        _safeUpdateState(state.copyWith(isLoading: false, error: e.toString()));
-      }
+      // Update state with error
+      state = state.copyWith(isLoading: false);
     }
   }
 
@@ -113,11 +113,8 @@ class GamificationController extends StateNotifier<GamificationState> {
       final result = await StreakService.useStreakFreeze();
 
       if (result) {
-        // Refresh streak freeze data
-        final streakFreeze = await StreakService.getAvailableStreakFreezes();
-        if (mounted) {
-          _safeUpdateState(state.copyWith(streakFreeze: streakFreeze));
-        }
+        // Refresh all relevant data
+        await loadGamificationData();
       }
 
       return result;
@@ -142,11 +139,10 @@ class GamificationController extends StateNotifier<GamificationState> {
 
     final currentStreak = state.userStreak!.currentStreak;
 
-    final streakAchievements =
-        state.achievements
-            .where((a) => a.requirementType == 'streak_days')
-            .toList()
-          ..sort((a, b) => a.requirementValue.compareTo(b.requirementValue));
+    final streakAchievements = state.achievements
+        .where((a) => a.requirementType == 'streak_days')
+        .toList()
+      ..sort((a, b) => a.requirementValue.compareTo(b.requirementValue));
 
     for (final achievement in streakAchievements) {
       if (achievement.requirementValue > currentStreak &&
