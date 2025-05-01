@@ -108,72 +108,71 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
 
     return Scaffold(
       body: SafeArea(
-        child:
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: RefreshIndicator(
-                    onRefresh: _loadDashboardData,
-                    child: CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        // App bar with safer height and better accessibility
-                        SliverAppBar(
-                          backgroundColor:
-                              Theme.of(context).scaffoldBackgroundColor,
-                          toolbarHeight: 60.0, // Reduced from 70.0
-                          pinned: true,
-                          elevation: 0,
-                          centerTitle: false,
-                          title: Text(
-                            'DeltaMind',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 22.0, // Smaller font size
-                            ),
-                          ),
-                          actions: [
-                            IconButton(
-                              icon: Icon(PhosphorIconsFill.arrowClockwise),
-                              onPressed: _loadDashboardData,
-                              tooltip: 'Refresh',
-                            ),
-                            const ProfileAvatar(),
-                          ],
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : FadeTransition(
+                opacity: _fadeAnimation,
+                child: RefreshIndicator(
+                  onRefresh: _loadDashboardData,
+                  child: CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      // App bar with safer height and better accessibility
+                      SliverAppBar(
+                        backgroundColor:
+                            Theme.of(context).scaffoldBackgroundColor,
+                        toolbarHeight: 60.0, // Reduced from 70.0
+                        pinned: true,
+                        elevation: 0,
+                        centerTitle: false,
+                        title: Text(
+                          'DeltaMind',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 22.0, // Smaller font size
+                              ),
                         ),
-
-                        // Main content
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate([
-                              const SizedBox(height: 8),
-
-                              // Welcome message in a card
-                              _buildWelcomeCard(user),
-                              const SizedBox(height: 16),
-
-                              // Streak summary with animation
-                              const DashboardStreakSummary(),
-                              const SizedBox(height: 16),
-
-                              // Analytics card
-                              _buildAnalyticsCard(),
-                              const SizedBox(height: 16),
-
-                              // Recent quizzes with visual enhancements
-                              _buildRecentQuizzesSection(),
-                              const SizedBox(height: 80), // Extra space for FAB
-                            ]),
+                        actions: [
+                          IconButton(
+                            icon: Icon(PhosphorIconsFill.arrowClockwise),
+                            onPressed: _loadDashboardData,
+                            tooltip: 'Refresh',
                           ),
+                          const ProfileAvatar(),
+                        ],
+                      ),
+
+                      // Main content
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            const SizedBox(height: 8),
+
+                            // Welcome message in a card
+                            _buildWelcomeCard(user),
+                            const SizedBox(height: 16),
+
+                            // Streak summary with animation
+                            const DashboardStreakSummary(),
+                            const SizedBox(height: 16),
+
+                            // Analytics card
+                            _buildAnalyticsCard(),
+                            const SizedBox(height: 16),
+
+                            // Recent quizzes with visual enhancements
+                            _buildRecentQuizzesSection(),
+                            const SizedBox(height: 80), // Extra space for FAB
+                          ]),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.createQuiz),
@@ -199,11 +198,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white, AppColors.primary.withOpacity(0.05)],
-          ),
+          color: Colors.blue.withOpacity(
+              0.05), // Light blue with low opacity instead of gradient
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -307,8 +303,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 child: Text(
                   'Learning Analytics',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ),
               Icon(
@@ -343,20 +339,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         ),
         _recentQuizzes.isEmpty
             ? _buildEmptyState(
-              'No quizzes yet',
-              'Create your first quiz to get started',
-              PhosphorIconsFill.clipboard,
-            )
+                'No quizzes yet',
+                'Create your first quiz to get started',
+                PhosphorIconsFill.clipboard,
+              )
             : ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: _recentQuizzes.length,
-              padding: EdgeInsets.zero,
-              itemBuilder: (context, index) {
-                final quiz = _recentQuizzes[index];
-                return _buildQuizItem(quiz, index);
-              },
-            ),
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: _recentQuizzes.length,
+                padding: EdgeInsets.zero,
+                itemBuilder: (context, index) {
+                  final quiz = _recentQuizzes[index];
+                  return _buildQuizItem(quiz, index);
+                },
+              ),
       ],
     );
   }
@@ -503,9 +499,9 @@ class DashboardAppBar extends StatelessWidget {
       title: Text(
         'DeltaMind',
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 22.0, // Smaller font size
-        ),
+              fontWeight: FontWeight.bold,
+              fontSize: 22.0, // Smaller font size
+            ),
       ),
       actions: const [ProfileAvatar()],
     );
@@ -553,16 +549,16 @@ class DashboardGreeting extends ConsumerWidget {
                       Text(
                         greeting,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                       Text(
                         'Hello, ${user?.email?.split('@').first ?? 'User'}',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -651,18 +647,18 @@ class StatsCard extends StatelessWidget {
               Text(
                 value,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: color.withOpacity(0.9),
-                ),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: color.withOpacity(0.9),
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ],
           ),
@@ -691,9 +687,9 @@ class YourStats extends ConsumerWidget {
           child: Text(
             'Your Stats',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
           ),
         ),
         GridView.count(

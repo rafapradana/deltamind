@@ -765,7 +765,7 @@ class _QuizHistoryTabState extends ConsumerState<QuizHistoryTab> {
         onTap: () {
           if (!isDeleting) {
             // Navigate to quiz attempt details
-            context.go('/quiz-review', extra: attempt['id']);
+            context.go('/quiz-review/${attempt['id']}');
           }
         },
         borderRadius: BorderRadius.circular(16),
@@ -798,7 +798,7 @@ class _QuizHistoryTabState extends ConsumerState<QuizHistoryTab> {
                       ),
                       onSelected: (value) {
                         if (value == 'view') {
-                          context.go('/quiz-review', extra: attempt['id']);
+                          context.go('/quiz-review/${attempt['id']}');
                         } else if (value == 'retake' && quizId != null) {
                           context.go('/quiz/$quizId');
                         } else if (value == 'delete') {
@@ -931,8 +931,7 @@ class _QuizHistoryTabState extends ConsumerState<QuizHistoryTab> {
                           ? null
                           : () {
                               context.go(
-                                '/quiz-review',
-                                extra: attempt['id'],
+                                '/quiz-review/${attempt['id']}',
                               );
                             },
                       icon: const Icon(Icons.visibility),

@@ -60,56 +60,93 @@ class DashboardStreakSummary extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // First row with streak text and chips
                         Row(
                           children: [
+                            // Streak count text
                             Text(
                               '${streak.currentStreak}-Day Streak',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            if (level != null) ...[
-                              const SizedBox(width: 8),
+                            const Spacer(),
+                            // Best streak text
+                            Text(
+                              'Best Streak: ${streak.longestStreak}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Second row with level and freeze chips
+                        Row(
+                          children: [
+                            if (level != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
+                                  horizontal: 10,
+                                  vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Text(
-                                  'Level ${level.currentLevel}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 10,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      PhosphorIconsFill.star,
+                                      size: 14,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Level ${level.currentLevel}',
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                streak.currentStreak > 0
-                                    ? 'Keep going! Your longest streak is ${streak.longestStreak} days.'
-                                    : 'Complete a quiz today to start your streak!',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey.shade600,
+                            if (level != null && hasStreakFreezes)
+                              const SizedBox(width: 8),
+                            if (hasStreakFreezes)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      PhosphorIconsFill.snowflake,
+                                      size: 14,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${streakFreeze.availableFreezes}',
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            if (hasStreakFreezes) ...[
-                              const SizedBox(width: 4),
-                              const StreakFreezeWidget(compact: true),
-                            ],
                           ],
                         ),
                       ],

@@ -14,7 +14,7 @@ class QuizReviewDetailPage extends ConsumerStatefulWidget {
   final String attemptId;
 
   const QuizReviewDetailPage({required this.attemptId, Key? key})
-    : super(key: key);
+      : super(key: key);
 
   @override
   ConsumerState<QuizReviewDetailPage> createState() =>
@@ -64,25 +64,18 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
 
       // Load quiz attempt details
       final quizAttemptResponse =
-          await supabase
-              .from('quiz_attempts')
-              .select('''
+          await supabase.from('quiz_attempts').select('''
             id, quiz_id, user_id, score, total_questions, created_at,
             quizzes:quiz_id (id, title, quiz_type, difficulty)
-          ''')
-              .eq('id', quizAttemptId)
-              .single();
+          ''').eq('id', quizAttemptId).single();
 
       if (quizAttemptResponse != null) {
         // Load user answers for this attempt
-        final userAnswersResponse = await supabase
-            .from('user_answers')
-            .select('''
+        final userAnswersResponse =
+            await supabase.from('user_answers').select('''
               id, question_id, user_answer, is_correct,
               questions:question_id (id, quiz_id, question_text, options, correct_answer, explanation)
-            ''')
-            .eq('quiz_attempt_id', quizAttemptId)
-            .order('created_at');
+            ''').eq('quiz_attempt_id', quizAttemptId).order('created_at');
 
         if (mounted) {
           setState(() {
@@ -165,8 +158,8 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
       // Generate new recommendation
       final newRecommendation =
           await RecommendationService.generateAndSaveQuizRecommendation(
-            quizAttemptId,
-          );
+        quizAttemptId,
+      );
 
       if (mounted) {
         setState(() {
@@ -223,8 +216,8 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
       // Generate new recommendation
       final newRecommendation =
           await RecommendationService.generateAndSaveQuizRecommendation(
-            quizAttemptId,
-          );
+        quizAttemptId,
+      );
 
       if (mounted) {
         setState(() {
@@ -274,10 +267,9 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
               ? Center(child: Text('Error: $_errorMessage'))
               : _buildContent(),
     );
@@ -525,14 +517,14 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
               // Header with AI assistant branding
               Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.indigo.shade700, Colors.purple.shade700],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Colors.blue.shade100.withOpacity(0.5),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16),
+                  ),
+                  border: Border.all(
+                    color: Colors.blue.shade800,
+                    width: 1.0,
                   ),
                 ),
                 padding: const EdgeInsets.all(16),
@@ -541,12 +533,12 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: Colors.white.withOpacity(0.6),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.auto_awesome,
-                        color: Colors.white,
+                        color: Colors.blue.shade800,
                         size: 24,
                       ),
                     ),
@@ -555,10 +547,10 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'AI Learning Assistant',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.blue.shade800,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -567,7 +559,7 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                           Text(
                             'Personalized insights based on your quiz performance',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.85),
+                              color: Colors.blue.shade800.withOpacity(0.8),
                               fontSize: 12,
                             ),
                           ),
@@ -575,38 +567,19 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                       ),
                     ),
                     IconButton(
-                      onPressed:
-                          _aiRecommendation != null &&
-                                  !_isLoadingRecommendations
-                              ? _regenerateRecommendations
-                              : null,
+                      onPressed: _aiRecommendation != null &&
+                              !_isLoadingRecommendations
+                          ? _regenerateRecommendations
+                          : null,
                       tooltip: 'Regenerate recommendations',
                       icon: Icon(
                         PhosphorIcons.lightning(),
-                        color: Colors.white.withOpacity(
+                        color: Colors.blue.shade800.withOpacity(
                           _aiRecommendation != null &&
                                   !_isLoadingRecommendations
                               ? 1.0
                               : 0.5,
                         ),
-                        size: 20,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _showRecommendations = !_showRecommendations;
-                        });
-                      },
-                      tooltip:
-                          _showRecommendations
-                              ? 'Hide recommendations'
-                              : 'Show recommendations',
-                      icon: Icon(
-                        _showRecommendations
-                            ? PhosphorIcons.caretUp()
-                            : PhosphorIcons.caretDown(),
-                        color: Colors.white,
                         size: 20,
                       ),
                     ),
@@ -633,10 +606,9 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   padding: const EdgeInsets.all(16),
-                  child:
-                      _isLoadingRecommendations
-                          ? _buildLoadingState()
-                          : _aiRecommendation == null
+                  child: _isLoadingRecommendations
+                      ? _buildLoadingState()
+                      : _aiRecommendation == null
                           ? _buildNoRecommendationsState()
                           : _buildRecommendationCards(),
                 ),
@@ -979,19 +951,17 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                       height: 32,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color:
-                            isCorrect
-                                ? Colors.green.shade100
-                                : Colors.red.shade100,
+                        color: isCorrect
+                            ? Colors.green.shade100
+                            : Colors.red.shade100,
                       ),
                       child: Center(
                         child: Icon(
                           isCorrect ? PhosphorIcons.check() : PhosphorIcons.x(),
                           size: 18,
-                          color:
-                              isCorrect
-                                  ? Colors.green.shade700
-                                  : Colors.red.shade700,
+                          color: isCorrect
+                              ? Colors.green.shade700
+                              : Colors.red.shade700,
                         ),
                       ),
                     ),
@@ -1001,10 +971,9 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                         'Question ${i + 1}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color:
-                              isCorrect
-                                  ? Colors.green.shade700
-                                  : Colors.red.shade700,
+                          color: isCorrect
+                              ? Colors.green.shade700
+                              : Colors.red.shade700,
                         ),
                       ),
                     ),
@@ -1073,10 +1042,9 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                                   isCorrect
                                       ? PhosphorIcons.checkCircle()
                                       : PhosphorIcons.xCircle(),
-                                  color:
-                                      isCorrect
-                                          ? Colors.green.shade700
-                                          : Colors.red.shade700,
+                                  color: isCorrect
+                                      ? Colors.green.shade700
+                                      : Colors.red.shade700,
                                   size: 18,
                                 )
                               else if (isCorrectAnswer)
@@ -1097,10 +1065,9 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
                                   option,
                                   style: TextStyle(
                                     color: textColor,
-                                    fontWeight:
-                                        isCorrectAnswer || isUserAnswer
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
+                                    fontWeight: isCorrectAnswer || isUserAnswer
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
                                 ),
                               ),
@@ -1171,28 +1138,23 @@ class _QuizReviewDetailPageState extends ConsumerState<QuizReviewDetailPage> {
 
     // Ensure all required fields are present, using empty strings as fallbacks
     // Support both new and old field names
-    final performanceOverview =
-        _aiRecommendation!['performance_overview'] ??
+    final performanceOverview = _aiRecommendation!['performance_overview'] ??
         _aiRecommendation!['overall_assessment'] ??
         'Performance data not available.';
 
-    final strengths =
-        _aiRecommendation!['strengths'] ??
+    final strengths = _aiRecommendation!['strengths'] ??
         _aiRecommendation!['strong_areas'] ??
         'Strength analysis not available.';
 
-    final areasForImprovement =
-        _aiRecommendation!['areas_for_improvement'] ??
+    final areasForImprovement = _aiRecommendation!['areas_for_improvement'] ??
         _aiRecommendation!['weak_areas'] ??
         'Areas for improvement not available.';
 
-    final learningStrategies =
-        _aiRecommendation!['learning_strategies'] ??
+    final learningStrategies = _aiRecommendation!['learning_strategies'] ??
         _aiRecommendation!['learning_recommendations'] ??
         'Learning strategies not available.';
 
-    final actionPlan =
-        _aiRecommendation!['action_plan'] ??
+    final actionPlan = _aiRecommendation!['action_plan'] ??
         _aiRecommendation!['next_steps'] ??
         'Action plan not available.';
 
