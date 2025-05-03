@@ -86,11 +86,9 @@ class QuizAttemptState {
 }
 
 /// Provider for quiz attempt
-final quizAttemptProvider = StateNotifierProvider.family<
-  QuizAttemptNotifier,
-  QuizAttemptState,
-  QuizAttemptParams
->((ref, params) => QuizAttemptNotifier(params.quizId, params.questions));
+final quizAttemptProvider = StateNotifierProvider.family<QuizAttemptNotifier,
+        QuizAttemptState, QuizAttemptParams>(
+    (ref, params) => QuizAttemptNotifier(params.quizId, params.questions));
 
 /// Parameters for quiz attempt
 class QuizAttemptParams {
@@ -103,13 +101,13 @@ class QuizAttemptParams {
 /// Notifier for quiz attempt
 class QuizAttemptNotifier extends StateNotifier<QuizAttemptState> {
   QuizAttemptNotifier(String quizId, List<Question> questions)
-    : super(
-        QuizAttemptState(
-          quizId: quizId,
-          questions: questions,
-          startTime: DateTime.now(),
-        ),
-      );
+      : super(
+          QuizAttemptState(
+            quizId: quizId,
+            questions: questions,
+            startTime: DateTime.now(),
+          ),
+        );
 
   /// Safe state update method to prevent errors during widget building
   void _safeUpdateState(QuizAttemptState newState) {
@@ -549,12 +547,10 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
                   )
                 else
                   const SizedBox(width: 100),
-
                 ElevatedButton(
-                  onPressed:
-                      quizAttempt.isCurrentQuestionAnswered()
-                          ? () => quizAttemptNotifier.nextQuestion()
-                          : null,
+                  onPressed: quizAttempt.isCurrentQuestionAnswered()
+                      ? () => quizAttemptNotifier.nextQuestion()
+                      : null,
                   child: Text(
                     quizAttempt.currentQuestionIndex ==
                             quizAttempt.totalQuestions - 1
@@ -608,7 +604,9 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
               child: Row(
                 children: [
                   isSelected
-                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      ? isCorrect
+                          ? const Icon(Icons.check_circle, color: Colors.green)
+                          : const Icon(Icons.cancel, color: Colors.red)
                       : const Icon(Icons.circle_outlined, color: Colors.grey),
                   const SizedBox(width: 12),
                   Expanded(
@@ -630,10 +628,9 @@ class _TakeQuizPageState extends ConsumerState<TakeQuizPage> {
   Widget _buildQuizCompletedScreen(QuizAttemptState quizAttempt) {
     // Save quiz attempt and navigate to review page
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final quizAttemptId =
-          await ref
-              .read(quizAttemptProvider(_params).notifier)
-              .saveQuizAttempt();
+      final quizAttemptId = await ref
+          .read(quizAttemptProvider(_params).notifier)
+          .saveQuizAttempt();
 
       if (quizAttemptId != null && mounted) {
         // Navigate to quiz review detail page using GoRouter

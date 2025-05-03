@@ -68,38 +68,37 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Future<void> _showImageSourceOptions() async {
     showModalBottomSheet(
       context: context,
-      builder:
-          (context) => SafeArea(
-            child: Wrap(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Choose from Gallery'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _pickImageFromGallery();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_camera),
-                  title: const Text('Take a Photo'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _pickImageFromCamera();
-                  },
-                ),
-                if (kIsWeb || !Platform.isIOS && !Platform.isAndroid)
-                  ListTile(
-                    leading: const Icon(Icons.upload_file),
-                    title: const Text('Upload File'),
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _pickFileFromSystem();
-                    },
-                  ),
-              ],
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickImageFromGallery();
+              },
             ),
-          ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickImageFromCamera();
+              },
+            ),
+            if (kIsWeb || !Platform.isIOS && !Platform.isAndroid)
+              ListTile(
+                leading: const Icon(Icons.upload_file),
+                title: const Text('Upload File'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickFileFromSystem();
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -353,155 +352,198 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(PhosphorIconsFill.chartLine),
-            onPressed: () => context.push(AppRoutes.analytics),
-            tooltip: 'Analytics',
-          ),
-          IconButton(
             icon: Icon(PhosphorIconsFill.signOut),
             onPressed: _isLoading ? null : _signOut,
             tooltip: 'Sign Out',
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Profile header
-                    _buildProfileHeader(user),
-                    const SizedBox(height: 24),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile header
+                  _buildProfileHeader(user),
+                  const SizedBox(height: 24),
 
-                    // Profile form
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Profile Information',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _usernameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Username',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter a username';
-                                  }
-                                  if (value.length < 3) {
-                                    return 'Username must be at least 3 characters long';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: _isLoading ? null : _updateProfile,
-                                  child: const Text('Update Profile'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                  // Profile form
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      side:
+                          const BorderSide(color: AppColors.primary, width: 2),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Account section
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Form(
+                        key: _formKey,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Account Information',
+                              'Profile Information',
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 16),
-                            ListTile(
-                              title: const Text('Email'),
-                              subtitle: Text(user?.email ?? 'Not available'),
-                              leading: const Icon(
-                                Icons.email,
-                                color: AppColors.primary,
+                            TextFormField(
+                              controller: _usernameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Username',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter a username';
+                                }
+                                if (value.length < 3) {
+                                  return 'Username must be at least 3 characters long';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _updateProfile,
+                                child: const Text('Update Profile'),
                               ),
                             ),
-                            const Divider(),
-                            ListTile(
-                              title: const Text('User ID'),
-                              subtitle: Text(
-                                user?.id ?? 'Not available',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              leading: const Icon(
-                                Icons.perm_identity,
-                                color: AppColors.secondary,
-                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Shortcuts section
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      side:
+                          const BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Shortcuts',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 16),
+                          ListTile(
+                            title: const Text('Achievements'),
+                            leading: const Icon(
+                              PhosphorIconsFill.trophy,
+                              color: AppColors.accent,
                             ),
-                            const Divider(),
-                            ListTile(
-                              title: const Text('Joined'),
-                              subtitle: Text(
-                                user?.createdAt != null
-                                    ? _formatDate(
+                            onTap: () => context.push(AppRoutes.achievements),
+                          ),
+                          const Divider(),
+                          ListTile(
+                            title: const Text('Analytics'),
+                            leading: const Icon(
+                              PhosphorIconsFill.chartLine,
+                              color: AppColors.primary,
+                            ),
+                            onTap: () => context.push(AppRoutes.analytics),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Account section
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      side:
+                          const BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Account Information',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 16),
+                          ListTile(
+                            title: const Text('Email'),
+                            subtitle: Text(user?.email ?? 'Not available'),
+                            leading: const Icon(
+                              Icons.email,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const Divider(),
+                          ListTile(
+                            title: const Text('User ID'),
+                            subtitle: Text(
+                              user?.id ?? 'Not available',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            leading: const Icon(
+                              Icons.perm_identity,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                          const Divider(),
+                          ListTile(
+                            title: const Text('Joined'),
+                            subtitle: Text(
+                              user?.createdAt != null
+                                  ? _formatDate(
                                       DateTime.parse(user!.createdAt),
                                     )
-                                    : 'Not available',
-                              ),
-                              leading: const Icon(
-                                Icons.calendar_today,
-                                color: AppColors.accent,
-                              ),
+                                  : 'Not available',
                             ),
-                          ],
-                        ),
+                            leading: const Icon(
+                              Icons.calendar_today,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                  ),
+                  const SizedBox(height: 24),
 
-                    // Actions section
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Actions',
-                              style: Theme.of(context).textTheme.titleLarge,
+                  // Actions section
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      side: const BorderSide(color: AppColors.error, width: 2),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          ListTile(
+                            title: const Text('Sign Out'),
+                            leading: const Icon(
+                              Icons.logout,
+                              color: AppColors.error,
                             ),
-                            const SizedBox(height: 16),
-                            ListTile(
-                              title: const Text('Sign Out'),
-                              leading: const Icon(
-                                Icons.logout,
-                                color: AppColors.error,
-                              ),
-                              onTap: _isLoading ? null : _signOut,
-                            ),
-                            // More actions can be added here
-                          ],
-                        ),
+                            onTap: _isLoading ? null : _signOut,
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
     );
   }
 
@@ -526,40 +568,39 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     color: AppColors.primary.withOpacity(0.1),
                     border: Border.all(color: Colors.blue, width: 3),
                   ),
-                  child:
-                      _isUploadingImage
-                          ? const CircularProgressIndicator()
-                          : (avatarUrl != null && avatarUrl.isNotEmpty)
+                  child: _isUploadingImage
+                      ? const CircularProgressIndicator()
+                      : (avatarUrl != null && avatarUrl.isNotEmpty)
                           ? ClipOval(
-                            child: Image.network(
-                              avatarUrl,
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildInitialsAvatar();
-                              },
-                              loadingBuilder: (
-                                context,
-                                child,
-                                loadingProgress,
-                              ) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value:
-                                        loadingProgress.expectedTotalBytes !=
-                                                null
-                                            ? loadingProgress
-                                                    .cumulativeBytesLoaded /
-                                                loadingProgress
-                                                    .expectedTotalBytes!
-                                            : null,
-                                  ),
-                                );
-                              },
-                            ),
-                          )
+                              child: Image.network(
+                                avatarUrl,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return _buildInitialsAvatar();
+                                },
+                                loadingBuilder: (
+                                  context,
+                                  child,
+                                  loadingProgress,
+                                ) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      value:
+                                          loadingProgress.expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
                           : _buildInitialsAvatar(),
                 ),
               ),

@@ -280,8 +280,8 @@ class StreakCard extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final barColor = isActive
-        ? AppColors.accent
-        : theme.colorScheme.onSurface.withOpacity(0.1);
+            ? AppColors.accent
+            : theme.colorScheme.onSurface.withOpacity(0.1);
     final barHeight = isActive ? 40.0 : 15.0;
 
     return Column(
@@ -295,14 +295,14 @@ class StreakCard extends StatelessWidget {
             color: barColor,
             borderRadius: BorderRadius.circular(4),
             boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: AppColors.accent.withOpacity(0.3),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
+                    ? [
+                      BoxShadow(
+                        color: AppColors.accent.withOpacity(0.3),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                    : null,
           ),
         ),
         const SizedBox(height: 8),
@@ -312,8 +312,8 @@ class StreakCard extends StatelessWidget {
             dayName,
             style: theme.textTheme.bodySmall?.copyWith(
               color: isToday
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.7),
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.7),
               fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
               fontSize: 10, // Smaller font size to avoid overflow
             ),
@@ -439,7 +439,7 @@ class StreakCard extends StatelessWidget {
                     color: Colors.blue.shade700,
                   ),
                   overflow: TextOverflow.ellipsis,
-                ),
+                  ),
                 const SizedBox(height: 4),
                 StreakFreezeCountdown(
                   expiryTime: expiryTime,

@@ -27,11 +27,8 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     if (location.startsWith(AppRoutes.notesList)) {
       return 2;
     }
-    if (location.startsWith(AppRoutes.analytics)) {
-      return 3;
-    }
     if (location.startsWith(AppRoutes.profile)) {
-      return 4;
+      return 3;
     }
     return 0;
   }
@@ -48,9 +45,6 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
         context.go(AppRoutes.notesList);
         break;
       case 3:
-        context.go(AppRoutes.analytics);
-        break;
-      case 4:
         context.go(AppRoutes.profile);
         break;
     }
@@ -71,10 +65,6 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
           ),
           BottomNavigationBarItem(icon: Icon(Icons.quiz), label: 'Quizzes'),
           BottomNavigationBarItem(icon: Icon(Icons.notes), label: 'Notes'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics),
-            label: 'Analytics',
-          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
