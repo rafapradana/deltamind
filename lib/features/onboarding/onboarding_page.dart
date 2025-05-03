@@ -32,10 +32,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
       icon: Icons.psychology,
     ),
     OnboardingSlide(
-      title: 'Track Your Progress',
+      title: 'Analytics Dashboard',
       description:
-          'Monitor your performance over time and focus on improving weak areas with spaced repetition.',
-      icon: Icons.insights,
+          'Visualize your learning journey with detailed analytics. Track performance over time, identify weak areas, and see your improvement patterns.',
+      icon: Icons.analytics,
+    ),
+    OnboardingSlide(
+      title: 'Gamification',
+      description:
+          'Stay motivated with streak tracking, levels, achievements, and streak freeze features. Turn learning into a rewarding journey and compete with yourself.',
+      icon: Icons.emoji_events,
+    ),
+    OnboardingSlide(
+      title: 'Smart Notes',
+      description:
+          'Create and organize your study notes with our powerful note-taking feature. Easily reference your notes while preparing for quizzes.',
+      icon: Icons.note_alt,
     ),
   ];
 
@@ -168,10 +180,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
 class OnboardingSlide {
   /// Title of the slide
   final String title;
-  
+
   /// Description text
   final String description;
-  
+
   /// Icon to display
   final IconData icon;
 
@@ -181,4 +193,4 @@ class OnboardingSlide {
     required this.description,
     required this.icon,
   });
-} 
+}
