@@ -12,6 +12,7 @@ DeltaMind is an intelligent learning assistant that helps users create personali
 - **Cross-Platform**: Works seamlessly on web, iOS, and Android
 - **Streak Freeze**: Pause your streak to maintain your momentum even during breaks.
 - **Analytics**: Gain deeper insights into your learning progress, streak, and quiz performance.
+- **Analytics**: built-in note-taking system to help users actively reflect, summarize, and store learning insights alongside quizzes.
 
 
 ## 🚀 Getting Started
