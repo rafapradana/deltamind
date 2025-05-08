@@ -15,6 +15,7 @@ import 'package:deltamind/features/profile/profile_page.dart';
 import 'package:deltamind/features/quiz/create_quiz_page.dart';
 import 'package:deltamind/features/quiz/quiz_list_page.dart';
 import 'package:deltamind/features/quiz/take_quiz_page.dart';
+import 'package:deltamind/features/search/search_page.dart';
 import 'package:deltamind/features/splash/splash_screen.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,9 @@ class AppRoutes {
 
   /// Streak freeze route
   static const String streakFreeze = '/streak-freeze';
+
+  /// Search route
+  static const String search = '/search';
 
   /// Notes list route
   static const String notesList = '/notes';
@@ -134,6 +138,10 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.streakFreeze,
     builder: (context, state) => const StreakFreezePage(),
+  ),
+  GoRoute(
+    path: AppRoutes.search,
+    builder: (context, state) => const SearchPage(),
   ),
   GoRoute(
     path: AppRoutes.notesList,

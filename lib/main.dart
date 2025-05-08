@@ -24,6 +24,7 @@ import 'package:deltamind/features/history/history_page.dart';
 import 'package:deltamind/features/history/quiz_review_detail_page.dart';
 import 'package:deltamind/features/splash/splash_screen.dart';
 import 'package:deltamind/features/analytics/analytics_page.dart';
+import 'package:deltamind/features/search/search_page.dart';
 import 'package:deltamind/services/gemini_service.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
@@ -213,6 +214,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.streakFreeze,
             builder: (context, state) => const StreakFreezePage(),
+          ),
+          GoRoute(
+            path: '/search',
+            builder: (context, state) => const SearchPage(),
           ),
           GoRoute(
             path: AppRoutes.notesList,

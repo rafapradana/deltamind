@@ -4,6 +4,7 @@ import 'package:deltamind/features/auth/auth_controller.dart';
 import 'package:deltamind/features/dashboard/profile_avatar.dart';
 import 'package:deltamind/features/gamification/gamification_controller.dart';
 import 'package:deltamind/features/gamification/widgets/dashboard_streak_summary.dart';
+import 'package:deltamind/features/search/search_bar_widget.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
 import 'package:flutter/material.dart';
@@ -150,6 +151,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                         sliver: SliverList(
                           delegate: SliverChildListDelegate([
                             const SizedBox(height: 8),
+
+                            // Global search bar
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 16),
+                              child: GlobalSearchBar(),
+                            ),
 
                             // Welcome message in a card
                             _buildWelcomeCard(user),
