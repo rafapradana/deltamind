@@ -54,8 +54,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       // Navigate to dashboard if already logged in
       context.go(AppRoutes.dashboard);
     } else {
-      // Navigate to onboarding if not logged in
-      context.go(AppRoutes.onboarding);
+      // Navigate to login directly if not logged in
+      context.go(AppRoutes.login);
     }
   }
 

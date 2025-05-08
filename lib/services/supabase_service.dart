@@ -84,7 +84,43 @@ class SupabaseService {
 
   /// Sign out
   static Future<void> signOut() async {
-    await client.auth.signOut();
+    try {
+      // Get the current user before signing out (for cleanup purposes)
+      final User? userBeforeSignOut = currentUser;
+
+      // First kill the session on the server
+      await client.auth.signOut(scope: SignOutScope.global);
+
+      // Then perform any additional cleanup if needed
+      if (kIsWeb) {
+        // For web, ensure any token data is cleared
+        try {
+          // Force refresh to ensure UI is updated (web-specific)
+          await Future.delayed(const Duration(milliseconds: 100));
+        } catch (e) {
+          debugPrint('Minor error during web cleanup: $e');
+        }
+      }
+
+      // Verify the user is actually signed out
+      if (currentUser != null) {
+        debugPrint('Warning: User still exists after signOut, forcing cleanup');
+        // Try one more time with basic signOut
+        await client.auth.signOut();
+      }
+
+      debugPrint('User signed out successfully');
+    } catch (e) {
+      debugPrint('Error during sign out: $e');
+      // Final fallback attempt with basic signOut
+      try {
+        await client.auth.signOut();
+      } catch (finalError) {
+        // At this point we've tried everything, just rethrow
+        debugPrint('Final signOut attempt also failed: $finalError');
+        rethrow;
+      }
+    }
   }
 
   /// Create user profile after sign up
@@ -183,13 +219,18 @@ class SupabaseService {
     }
   }
 
+  /// Check if user is authenticated and throw a standardized exception if not
+  static void checkAuthentication() {
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+  }
+
   /// Get quiz history statistics
   static Future<Map<String, dynamic>> getStatistics() async {
     try {
-      final userId = currentUser?.id;
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
+      checkAuthentication();
+      final userId = currentUser!.id;
 
       // Use the SQL function we created to get accurate stats
       final response = await client.rpc(

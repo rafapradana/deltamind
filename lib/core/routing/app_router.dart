@@ -2,6 +2,10 @@ import 'package:deltamind/features/analytics/analytics_page.dart';
 import 'package:deltamind/features/auth/login_page.dart';
 import 'package:deltamind/features/auth/register_page.dart';
 import 'package:deltamind/features/dashboard/dashboard_page.dart';
+import 'package:deltamind/features/flashcards/create_flashcard_deck_page.dart';
+import 'package:deltamind/features/flashcards/flashcard_deck_detail_page.dart';
+import 'package:deltamind/features/flashcards/flashcard_viewer_page.dart';
+import 'package:deltamind/features/flashcards/flashcards_list_page.dart';
 import 'package:deltamind/features/gamification/achievements_page.dart';
 import 'package:deltamind/features/gamification/streak_freeze_page.dart';
 import 'package:deltamind/features/history/history_page.dart';
@@ -70,6 +74,18 @@ class AppRoutes {
 
   /// Edit note route
   static const String editNote = '/notes/:id';
+
+  /// Flashcards list route
+  static const String flashcardsList = '/flashcards';
+
+  /// Create flashcard deck route
+  static const String createFlashcardDeck = '/flashcards/create';
+
+  /// Flashcard deck detail route
+  static const String flashcardDeckDetail = '/flashcards/:id';
+
+  /// Flashcard viewer route
+  static const String flashcardViewer = '/flashcards/:deckId/view';
 }
 
 /// App router configuration
@@ -127,6 +143,28 @@ final List<GoRoute> appRoutes = [
     path: AppRoutes.createNote,
     builder: (context, state) {
       return const CreateEditNotePage();
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.flashcardsList,
+    builder: (context, state) => const FlashcardsListPage(),
+  ),
+  GoRoute(
+    path: AppRoutes.createFlashcardDeck,
+    builder: (context, state) => const CreateFlashcardDeckPage(),
+  ),
+  GoRoute(
+    path: '/flashcards/:id',
+    builder: (context, state) {
+      final deckId = state.pathParameters['id']!;
+      return FlashcardDeckDetailPage(deckId: deckId);
+    },
+  ),
+  GoRoute(
+    path: '/flashcards/:deckId/view',
+    builder: (context, state) {
+      final deckId = state.pathParameters['deckId']!;
+      return FlashcardViewerPage(deckId: deckId);
     },
   ),
   GoRoute(

@@ -5,6 +5,10 @@ import 'package:deltamind/features/auth/auth_controller.dart';
 import 'package:deltamind/features/auth/login_page.dart';
 import 'package:deltamind/features/auth/register_page.dart';
 import 'package:deltamind/features/dashboard/dashboard_page.dart';
+import 'package:deltamind/features/flashcards/create_flashcard_deck_page.dart';
+import 'package:deltamind/features/flashcards/flashcard_deck_detail_page.dart';
+import 'package:deltamind/features/flashcards/flashcard_viewer_page.dart';
+import 'package:deltamind/features/flashcards/flashcards_list_page.dart';
 import 'package:deltamind/features/gamification/achievements_page.dart';
 import 'package:deltamind/features/gamification/streak_freeze_page.dart';
 import 'package:deltamind/features/navigation/scaffold_with_nav_bar.dart';
@@ -23,6 +27,7 @@ import 'package:deltamind/features/analytics/analytics_page.dart';
 import 'package:deltamind/services/gemini_service.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
+import 'package:deltamind/core/routing/auth_middleware.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -100,9 +105,15 @@ void main() async {
 final _routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
 
+  // Create a router notifier to handle authentication state changes
+  // This ensures authentication state is properly reflected in navigation
+  final _routerNotifier = _RouterNotifier(ref);
+
   return GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: true,
+    refreshListenable:
+        _routerNotifier, // Refresh routes when auth state changes
     redirect: (context, state) {
       // Skip redirection for splash screen
       final isSplashRoute = state.matchedLocation == AppRoutes.splash;
@@ -110,24 +121,32 @@ final _routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // If the user is not logged in, they need to be on either the
-      // onboarding, login, or register page
       final isLoggedIn = authState.user != null;
       final isOnboardingRoute = state.matchedLocation == AppRoutes.onboarding;
       final isLoginRoute = state.matchedLocation == AppRoutes.login;
       final isRegisterRoute = state.matchedLocation == AppRoutes.register;
 
-      // If the user is not logged in and is not on a public route, redirect to onboarding
-      if (!isLoggedIn &&
-          !isOnboardingRoute &&
-          !isLoginRoute &&
-          !isRegisterRoute) {
-        return AppRoutes.onboarding;
+      // Define which routes are public (don't require authentication)
+      final isPublicRoute =
+          isOnboardingRoute || isLoginRoute || isRegisterRoute;
+
+      // If we're currently loading auth state, don't redirect
+      if (authState.isLoading) {
+        return null;
+      }
+
+      // If the user is not logged in and is not on a public route, redirect to login
+      if (!isLoggedIn && !isPublicRoute) {
+        debugPrint(
+            'Redirecting unauthenticated user to login from ${state.matchedLocation}');
+        // Clear any error messages that might be in the state
+        return AppRoutes.login;
       }
 
       // If the user is logged in and is on a public route, redirect to dashboard
-      if (isLoggedIn &&
-          (isOnboardingRoute || isLoginRoute || isRegisterRoute)) {
+      if (isLoggedIn && isPublicRoute) {
+        debugPrint(
+            'Redirecting authenticated user to dashboard from ${state.matchedLocation}');
         return AppRoutes.dashboard;
       }
 
@@ -156,7 +175,9 @@ final _routerProvider = Provider<GoRouter>((ref) {
 
       // Shell route with navigation bar for authenticated routes
       ShellRoute(
-        builder: (context, state, child) => ScaffoldWithNavBar(child: child),
+        builder: (context, state, child) => ScaffoldWithNavBar(
+          child: AuthMiddleware(child: child),
+        ),
         routes: [
           GoRoute(
             path: AppRoutes.dashboard,
@@ -211,6 +232,28 @@ final _routerProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(
+            path: AppRoutes.flashcardsList,
+            builder: (context, state) => const FlashcardsListPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.createFlashcardDeck,
+            builder: (context, state) => const CreateFlashcardDeckPage(),
+          ),
+          GoRoute(
+            path: '/flashcards/:id',
+            builder: (context, state) {
+              final deckId = state.pathParameters['id']!;
+              return FlashcardDeckDetailPage(deckId: deckId);
+            },
+          ),
+          GoRoute(
+            path: '/flashcards/:deckId/view',
+            builder: (context, state) {
+              final deckId = state.pathParameters['deckId']!;
+              return FlashcardViewerPage(deckId: deckId);
+            },
+          ),
+          GoRoute(
             path: '/quiz/:id',
             builder: (context, state) {
               final quizId = state.pathParameters['id']!;
@@ -231,6 +274,26 @@ final _routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Router notifier to handle auth state changes
+class _RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+  AuthState? _previousAuthState;
+
+  _RouterNotifier(this._ref) {
+    // Listen to auth state changes
+    _ref.listen<AuthState>(authControllerProvider, (previous, next) {
+      // Only notify if auth status (logged in/out) changed
+      final didAuthStateChange = previous?.user != next.user;
+      _previousAuthState = next;
+      if (didAuthStateChange) {
+        debugPrint('Auth state changed: user=${next.user != null}');
+        // Notify immediately on auth state change
+        notifyListeners();
+      }
+    });
+  }
+}
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});

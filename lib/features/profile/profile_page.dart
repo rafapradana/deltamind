@@ -316,27 +316,50 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   /// Sign out user
   Future<void> _signOut() async {
-    setState(() {
-      _isLoading = true;
-    });
+    // Set loading state only if still mounted
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
+      // Sign out first
       await ref.read(authControllerProvider.notifier).signOut();
+
+      // Then navigate (only if still mounted)
       if (mounted) {
+        // Use go instead of navigateNamed for better navigation control
         context.go(AppRoutes.login);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Signed out successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error signing out: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error signing out: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+
+        // Even if sign out failed, redirect to login for safety
+        context.go(AppRoutes.login);
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      // Only update state if the widget is still mounted
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

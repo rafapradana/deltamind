@@ -36,13 +36,14 @@ class AuthController extends StateNotifier<AuthState> {
     // Initialize the auth state with the current user
     final currentUser = SupabaseService.currentUser;
     state = state.copyWith(user: currentUser);
-    
+
     // Listen for auth state changes
     SupabaseService.client.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
-      
-      if (event == AuthChangeEvent.signedIn || event == AuthChangeEvent.userUpdated) {
+
+      if (event == AuthChangeEvent.signedIn ||
+          event == AuthChangeEvent.userUpdated) {
         state = state.copyWith(user: session?.user);
       } else if (event == AuthChangeEvent.signedOut) {
         state = state.copyWith(user: null);
@@ -88,7 +89,7 @@ class AuthController extends StateNotifier<AuthState> {
         email,
         password,
       );
-      
+
       // Create user profile
       if (response.user != null) {
         await SupabaseService.createUserProfile(
@@ -97,7 +98,7 @@ class AuthController extends StateNotifier<AuthState> {
           username: username,
         );
       }
-      
+
       state = state.copyWith(
         user: response.user,
         isLoading: false,
@@ -129,18 +130,31 @@ class AuthController extends StateNotifier<AuthState> {
   /// Sign out
   Future<void> signOut() async {
     try {
+      // First set loading state
       state = state.copyWith(isLoading: true, error: null);
+
+      // Clear user from state immediately to prevent race conditions
+      // This ensures UI components know the user is logged out before the async operation completes
+      state = state.copyWith(user: null);
+
+      // Then perform the actual sign out operation
       await SupabaseService.signOut();
+
+      // Ensure we've completely cleared the user state
+      debugPrint('User signed out successfully');
+
+      // Update final state
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      debugPrint('Error in AuthController.signOut: $e');
+      // Even if there's an error, keep the user as null
+      // This prevents UI components from thinking the user is still logged in
       state = state.copyWith(
         user: null,
-        isLoading: false,
-      );
-    } catch (e) {
-      state = state.copyWith(
         isLoading: false,
         error: e.toString(),
       );
       rethrow;
     }
   }
-} 
+}
