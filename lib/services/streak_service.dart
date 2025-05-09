@@ -1,3 +1,4 @@
+import 'package:deltamind/models/daily_quest.dart';
 import 'package:deltamind/services/supabase_service.dart';
 import 'package:flutter/foundation.dart';
 
@@ -426,6 +427,76 @@ class StreakService {
       return response as bool;
     } catch (e) {
       debugPrint('Error using streak freeze: $e');
+      return false;
+    }
+  }
+
+  /// Get all daily quests for the current user
+  static Future<List<DailyQuest>> getDailyQuests() async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      try {
+        // Call generate_daily_quests RPC to ensure user has quests
+        await SupabaseService.client.rpc('generate_daily_quests', params: {
+          'user_id_param': userId,
+        });
+      } catch (e) {
+        // Log but continue - the user might still have existing quests
+        debugPrint('Warning: Could not generate daily quests: $e');
+      }
+
+      // Get all active quests for the user
+      final response = await SupabaseService.client
+          .from('daily_quests')
+          .select()
+          .eq('user_id', userId)
+          .gt('reset_at', DateTime.now().toIso8601String())
+          .order('quest_type');
+
+      return response
+          .map<DailyQuest>((json) => DailyQuest.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting daily quests: $e');
+      // Return empty list instead of throwing to prevent UI crashes
+      return [];
+    }
+  }
+
+  /// Update progress for a specific quest type
+  static Future<bool> updateQuestProgress(String questType,
+      [int incrementBy = 1]) async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response =
+          await SupabaseService.client.rpc('update_quest_progress', params: {
+        'user_id_param': userId,
+        'quest_type_param': questType,
+        'increment_count': incrementBy,
+      });
+
+      return response as bool;
+    } catch (e) {
+      debugPrint('Error updating quest progress: $e');
+      return false;
+    }
+  }
+
+  /// Reset all daily quests
+  static Future<bool> resetDailyQuests() async {
+    try {
+      await SupabaseService.client.rpc('reset_daily_quests');
+      return true;
+    } catch (e) {
+      debugPrint('Error resetting daily quests: $e');
       return false;
     }
   }
