@@ -4,7 +4,10 @@ import 'package:deltamind/features/auth/auth_controller.dart';
 import 'package:deltamind/features/dashboard/profile_avatar.dart';
 import 'package:deltamind/features/gamification/gamification_controller.dart';
 import 'package:deltamind/features/gamification/widgets/dashboard_streak_summary.dart';
+import 'package:deltamind/features/learning_paths/learning_paths_page.dart';
 import 'package:deltamind/features/search/search_bar_widget.dart';
+import 'package:deltamind/models/learning_path.dart';
+import 'package:deltamind/services/learning_path_service.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +29,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
   bool _isLoading = false;
   List<Quiz> _recentQuizzes = [];
   Map<String, dynamic> _quizHistoryStats = {};
+  LearningPath? _activePath;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -68,6 +72,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
 
       // Get quiz history statistics
       _quizHistoryStats = await SupabaseService.getStatistics();
+
+      // Get active learning path
+      try {
+        _activePath = await LearningPathService.getActiveLearningPath();
+      } catch (e) {
+        // Ignore errors with learning path, it's not critical
+        debugPrint('Error loading active learning path: $e');
+      }
 
       // Show success notification for refreshes (not initial load)
       if (!_animationController.isAnimating && mounted) {
@@ -165,6 +177,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                             // Streak summary with animation
                             const DashboardStreakSummary(),
                             const SizedBox(height: 16),
+
+                            // Learning Path card (if available)
+                            if (_activePath != null) ...[
+                              _buildLearningPathCard(),
+                              const SizedBox(height: 16),
+                            ],
 
                             // Analytics card
                             _buildAnalyticsCard(),
@@ -271,6 +289,209 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 ),
               ),
               child: const Text('Start a Quiz'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build learning path card (for active path)
+  Widget _buildLearningPathCard() {
+    if (_activePath == null) return const SizedBox();
+
+    final path = _activePath!;
+
+    // Find the first in-progress module if any
+    final inProgressModule = path.modules.firstWhere(
+      (module) => module.status == ModuleStatus.inProgress,
+      orElse: () => path.modules.isNotEmpty
+          ? path.modules.first
+          : LearningPathModule(
+              pathId: path.id,
+              title: 'No modules available',
+              description: 'This path has no modules.',
+              moduleId: '0',
+              position: 0,
+            ),
+    );
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+      ),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LearningPathsPage(),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      PhosphorIconsFill.roadHorizon,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Learning Path',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          path.title,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Progress
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Current Progress',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                      Text(
+                        '${path.progress}%',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: path.progress / 100,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      path.progress >= 100 ? Colors.green : AppColors.primary,
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ],
+              ),
+            ),
+
+            // Current module
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Current Module',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.grey.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            PhosphorIconsFill.caretRight,
+                            color: AppColors.primary,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Module ${inProgressModule.moduleId}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                inProgressModule.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          PhosphorIconsFill.caretRight,
+                          color: AppColors.primary,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

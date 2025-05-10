@@ -302,6 +302,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.2.1"
+  flutter_flow_chart:
+    dependency: "direct main"
+    description:
+      name: flutter_flow_chart
+      sha256: "8b05ad760fa2f2b525a6982f30513a997d86f290592fb1d2b6b4900bb7d05f8f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.3"
   flutter_keyboard_visibility_linux:
     dependency: transitive
     description:
