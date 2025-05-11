@@ -40,11 +40,11 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
     _loadLearningPath();
     _tabController = TabController(length: 2, vsync: this);
 
-    // Configure the graph layout
+    // Configure the graph layout with improved spacing and orientation
     builder
-      ..siblingSeparation = 100
-      ..levelSeparation = 150
-      ..subtreeSeparation = 150
+      ..siblingSeparation = 120
+      ..levelSeparation = 180
+      ..subtreeSeparation = 180
       ..orientation = BuchheimWalkerConfiguration.ORIENTATION_TOP_BOTTOM;
   }
 
@@ -150,13 +150,13 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
       case ModuleStatus.done:
         edgePaint = Paint()
           ..color = Colors.green
-          ..strokeWidth = 2
+          ..strokeWidth = 3
           ..style = PaintingStyle.stroke;
         break;
       case ModuleStatus.inProgress:
         edgePaint = Paint()
           ..color = AppColors.primary
-          ..strokeWidth = 2
+          ..strokeWidth = 2.5
           ..style = PaintingStyle.stroke;
         break;
       case ModuleStatus.locked:
@@ -168,6 +168,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
         break;
     }
 
+    // Add custom edge with curved style for better visualization
     graph.addEdge(from, to, paint: edgePaint);
   }
 
@@ -464,108 +465,93 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
     );
   }
 
-  /// Build a module graph visualization
+  /// Build a module graph visualization with improved layout
   Widget _buildModuleGraph() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 8, vertical: 8), // Reduced padding
-      child: Card(
-        elevation: 1, // Reduced elevation
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(12), // Reduced padding
-          color: Colors.grey.shade50,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row with controls
-              Row(
-                children: [
-                  Icon(
-                    PhosphorIcons.graph(PhosphorIconsStyle.fill),
-                    color: AppColors.primary,
-                    size: 18, // Smaller icon
-                  ),
-                  const SizedBox(width: 6), // Reduced spacing
-                  Text(
-                    'Learning Path Graph',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const Spacer(),
-                  if (_isMobileView)
-                    IconButton(
-                      icon: Icon(
-                        _selectedModule == null
-                            ? PhosphorIcons.listPlus(PhosphorIconsStyle.fill)
-                            : PhosphorIcons.arrowSquareOut(
-                                PhosphorIconsStyle.fill),
-                        size: 20, // Smaller icon
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Learning Path Visualization',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      onPressed: () {
-                        _tabController
-                            .animateTo(0); // Always go to overview tab
-                      },
-                      tooltip: _selectedModule == null
-                          ? 'Show Modules'
-                          : 'View Module',
-                      padding: EdgeInsets.zero, // Remove padding
-                      visualDensity: VisualDensity.compact,
+                ),
+                if (_isMobileView)
+                  IconButton(
+                    icon: Icon(
+                      _selectedModule == null
+                          ? PhosphorIcons.listPlus(PhosphorIconsStyle.fill)
+                          : PhosphorIcons.arrowSquareOut(
+                              PhosphorIconsStyle.fill),
+                      size: 20,
                     ),
-                ],
-              ),
-              const Divider(height: 16), // Reduced height
-
-              // Module selection dropdown for mobile
-              if (_isMobileView) ...[
-                _buildMobileModuleSelector(),
-                const SizedBox(height: 8), // Reduced spacing
-              ],
-
-              // Graph visualization
-              Expanded(
-                child: InteractiveViewer(
-                  constrained: false,
-                  boundaryMargin:
-                      EdgeInsets.all(_isMobileView ? 30 : 20), // Reduced margin
-                  minScale: 0.1,
-                  maxScale: 2.5,
-                  child: GraphView(
-                    graph: graph,
-                    algorithm: BuchheimWalkerAlgorithm(
-                      builder
-                        ..siblingSeparation =
-                            _isMobileView ? 80 : 100, // Adjust for mobile
-                      TreeEdgeRenderer(builder),
-                    ),
-                    paint: Paint()
-                      ..color = Colors.green
-                      ..strokeWidth = 1
-                      ..style = PaintingStyle.stroke,
-                    builder: (Node node) {
-                      // Find the corresponding module based on the node id
-                      final moduleId = node.key!.value.toString();
-                      final module = _path!.modules.firstWhere(
-                        (m) => m.id == moduleId,
-                        orElse: () => _path!.modules.first,
-                      );
-
-                      return _buildModuleNode(module);
+                    onPressed: () {
+                      _tabController.animateTo(0);
                     },
+                    tooltip: _selectedModule == null
+                        ? 'Show Modules'
+                        : 'View Module',
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
                   ),
+              ],
+            ),
+            const Divider(height: 16),
+
+            // Module selection dropdown for mobile
+            if (_isMobileView) ...[
+              _buildMobileModuleSelector(),
+              const SizedBox(height: 8),
+            ],
+
+            // Graph visualization with improved interaction
+            Expanded(
+              child: InteractiveViewer(
+                constrained: false,
+                boundaryMargin: const EdgeInsets.all(100),
+                minScale: 0.1,
+                maxScale: 2.5,
+                child: GraphView(
+                  graph: graph,
+                  algorithm: BuchheimWalkerAlgorithm(
+                    builder,
+                    TreeEdgeRenderer(builder),
+                  ),
+                  paint: Paint()
+                    ..color = Colors.green
+                    ..strokeWidth = 1
+                    ..style = PaintingStyle.stroke,
+                  builder: (Node node) {
+                    // Find the corresponding module based on the node id
+                    final moduleId = node.key!.value.toString();
+                    final module = _path!.modules.firstWhere(
+                      (m) => m.id == moduleId,
+                      orElse: () => _path!.modules.first,
+                    );
+
+                    return _buildModuleNode(module);
+                  },
                 ),
               ),
+            ),
 
-              // Legend for graph
-              if (_isMobileView) ...[
-                const SizedBox(height: 8), // Reduced spacing
-                _buildGraphLegend(),
-              ],
-            ],
-          ),
+            // Enhanced legend with better design
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _buildGraphLegend(),
+            ),
+          ],
         ),
       ),
     );
@@ -621,43 +607,48 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
     );
   }
 
-  /// Build a module node for the graph - more compact
+  /// Build a module node for the graph with improved design
   Widget _buildModuleNode(LearningPathModule module) {
     Color bgColor;
     Color borderColor;
     Color textColor;
+    Color iconBgColor;
     IconData iconData;
     bool isSelected =
         _selectedModule != null && _selectedModule!.id == module.id;
 
-    // Determine colors based on status
+    // Determine colors based on status with enhanced visual hierarchy
     switch (module.status) {
       case ModuleStatus.done:
-        bgColor = Colors.green.withOpacity(0.1);
+        bgColor = Colors.green.withOpacity(0.08);
         borderColor = Colors.green;
         textColor = Colors.green.shade800;
+        iconBgColor = Colors.green;
         iconData = PhosphorIcons.checkCircle(PhosphorIconsStyle.fill);
         break;
       case ModuleStatus.inProgress:
-        bgColor = AppColors.primary.withOpacity(0.1);
+        bgColor = AppColors.primary.withOpacity(0.08);
         borderColor = AppColors.primary;
         textColor = AppColors.primary;
-        iconData = PhosphorIcons.caretRight(PhosphorIconsStyle.fill);
+        iconBgColor = AppColors.primary;
+        iconData = PhosphorIcons.playCircle(PhosphorIconsStyle.fill);
         break;
       case ModuleStatus.locked:
       default:
-        bgColor = Colors.grey.shade100;
-        borderColor = Colors.grey.shade400;
+        bgColor = Colors.grey.shade50;
+        borderColor = Colors.grey.shade300;
         textColor = Colors.grey.shade700;
+        iconBgColor = Colors.grey.shade400;
         iconData = PhosphorIcons.lock(PhosphorIconsStyle.fill);
         break;
     }
 
     if (isSelected) {
-      borderColor = Colors.blue;
+      borderColor = Colors.blue.shade400;
+      bgColor = Colors.blue.withOpacity(0.05);
     }
 
-    // Module card - more compact
+    // Enhanced module card with better visual hierarchy and information display
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -670,14 +661,15 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
         }
       },
       child: Container(
-        margin: const EdgeInsets.all(2), // Reduced margin
-        padding: const EdgeInsets.all(8), // Reduced padding
+        margin: const EdgeInsets.all(4),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         constraints: BoxConstraints(
-          maxWidth: _isMobileView ? 100 : 150, // Limit width based on device
+          maxWidth: _isMobileView ? 120 : 180,
+          minWidth: _isMobileView ? 100 : 150,
         ),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(6), // Smaller radius
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: borderColor,
             width: isSelected ? 2.0 : 1.0,
@@ -686,15 +678,16 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
               ? [
                   BoxShadow(
                     color: Colors.blue.withOpacity(0.3),
-                    blurRadius: 3,
+                    blurRadius: 8,
                     spreadRadius: 1,
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.15),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 2),
                   ),
                 ],
         ),
@@ -702,51 +695,119 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Status badge with color coding
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(iconData, color: textColor, size: 12), // Smaller icon
-                const SizedBox(width: 4), // Reduced spacing
-                Expanded(
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: iconBgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        iconData,
+                        color: Colors.white,
+                        size: 10,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        module.status == ModuleStatus.done
+                            ? 'Completed'
+                            : module.status == ModuleStatus.inProgress
+                                ? 'In Progress'
+                                : 'Locked',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                // Module number with emphasized styling
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: textColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: textColor.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
                   child: Text(
-                    'Module ${module.moduleId}',
+                    'M${module.moduleId}',
                     style: TextStyle(
-                      fontSize: 10, // Smaller font
-                      fontWeight: FontWeight.w500,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4), // Reduced spacing
+            const SizedBox(height: 8),
+            // Module title with better prominence
             Text(
               module.title,
               style: TextStyle(
-                fontSize: 11, // Smaller font
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: textColor,
+                height: 1.2,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+            const SizedBox(height: 6),
+            // Time estimate with icon
             if (module.estimatedDuration != null) ...[
-              const SizedBox(height: 2), // Reduced spacing
               Row(
                 children: [
                   Icon(
                     PhosphorIcons.clock(PhosphorIconsStyle.fill),
-                    size: 10, // Smaller icon
+                    size: 10,
                     color: textColor.withOpacity(0.7),
                   ),
-                  const SizedBox(width: 2), // Reduced spacing
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       module.estimatedDuration!,
                       style: TextStyle(
-                        fontSize: 9, // Smaller font
-                        color: textColor.withOpacity(0.7),
+                        fontSize: 10,
+                        color: textColor.withOpacity(0.8),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+            // Dependencies indicator for better visualization of relationships
+            if (module.dependencies.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(
+                    PhosphorIcons.arrowsIn(PhosphorIconsStyle.fill),
+                    size: 10,
+                    color: textColor.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Depends on: ${module.dependencies.map((e) => 'M$e').join(', ')}',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: textColor.withOpacity(0.8),
+                        fontStyle: FontStyle.italic,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -760,58 +821,107 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
     );
   }
 
-  /// Build legend for graph symbols - more compact
+  /// Build legend for graph symbols with improved design
   Widget _buildGraphLegend() {
-    return Wrap(
-      spacing: 8, // Reduce spacing
-      runSpacing: 4, // Reduce spacing
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
-                color: Colors.green, size: 12), // Smaller icon
-            const SizedBox(width: 2), // Reduced spacing
-            Text(
-              'Completed',
-              style: TextStyle(
-                fontSize: 10, // Smaller font
-                color: Colors.green,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            spreadRadius: 0,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                  color: Colors.white,
+                  size: 10,
+                ),
               ),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.fill),
-                color: AppColors.primary, size: 12), // Smaller icon
-            const SizedBox(width: 2), // Reduced spacing
-            Text(
-              'In Progress',
-              style: TextStyle(
-                fontSize: 10, // Smaller font
-                color: AppColors.primary,
+              const SizedBox(width: 4),
+              const Text(
+                'Completed',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.green,
+                ),
               ),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(PhosphorIcons.lock(PhosphorIconsStyle.fill),
-                color: Colors.grey.shade600, size: 12), // Smaller icon
-            const SizedBox(width: 2), // Reduced spacing
-            Text(
-              'Locked',
-              style: TextStyle(
-                fontSize: 10, // Smaller font
-                color: Colors.grey.shade600,
+            ],
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  PhosphorIcons.playCircle(PhosphorIconsStyle.fill),
+                  color: Colors.white,
+                  size: 10,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+              const SizedBox(width: 4),
+              Text(
+                'In Progress',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  PhosphorIcons.lock(PhosphorIconsStyle.fill),
+                  color: Colors.white,
+                  size: 10,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Locked',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

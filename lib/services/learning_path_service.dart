@@ -248,7 +248,7 @@ class LearningPathService {
     try {
       SupabaseService.checkAuthentication();
 
-      // Create the improved prompt for Gemini with user preferences
+      // Create the improved prompt for Gemini with user preferences and enhanced content guidelines
       final prompt = '''
 Generate a comprehensive, visually structured learning path for the topic '$topic'. This will be displayed in a node-based graph visualization, with dependencies between modules shown as connecting lines.
 
@@ -267,17 +267,35 @@ Please create 5-8 modules that follow a logical progression from ${knowledgeLeve
 
 3. **Dependencies**: Explicitly define which modules depend on other modules. This creates the connecting lines in the graph view.
 
-4. **Learning Objectives**: Create clear, measurable learning objectives for each module that align with the user's specified learning goals.
+4. **Detailed Module Descriptions**: For each module, provide:
+   - A concise yet comprehensive description (2-3 sentences minimum)
+   - Clear explanation of why this module is important to master
+   - Real-world applications or contexts where this knowledge is used
+   - Any key concepts or terminology that will be introduced
 
-5. **Resources**: Recommend highly specific, high-quality resources for each module. Include a mix of:
-   - Video tutorials (from platforms like YouTube, Coursera, etc.)
-   - Reading materials (articles, documentation, books)
-   - Interactive exercises or projects
-   - Communities or forums for support
+5. **Specific Learning Objectives**: Create clear, measurable learning objectives for each module using action verbs (explain, implement, analyze, evaluate, etc.). Make them specific enough to guide self-assessment.
 
-6. **Time Estimates**: Provide realistic time estimates for each module based on the user's time commitment.
+6. **Highly Specific Resources**: For each module, recommend:
+   - Specific courses with platform names and course titles (e.g., "Machine Learning by Andrew Ng on Coursera")
+   - Specific articles with publication names (e.g., "Understanding Neural Networks on Medium by [author]")
+   - Books with author names (e.g., "Deep Learning by Ian Goodfellow")
+   - Specific GitHub repositories or code examples with links where applicable
+   - YouTube channels or specific videos with creator names
+   - Interactive tools or platforms for practice
 
-7. **Assessment**: Include practical assessment suggestions to verify understanding before proceeding to dependent modules.
+7. **Detailed Prerequisites**: Clearly state what knowledge is required before starting each module.
+
+8. **Practical Assessment Activities**: For each module, include:
+   - A hands-on project idea related to the module content
+   - Specific evaluation criteria to determine mastery
+   - An estimate of how long the assessment should take
+
+9. **Time Estimates**: Provide detailed time estimates for each module that:
+   - Break down time needed for theory vs. practice
+   - Account for the user's stated time commitment
+   - Include time estimates for completing recommended resources
+
+10. **Additional Notes**: Include important tips, common pitfalls to avoid, or alternative learning approaches based on the user's learning style.
 
 Format your response as a JSON object with the following structure:
 ```json
@@ -288,14 +306,19 @@ Format your response as a JSON object with the following structure:
     {
       "module_id": "1",
       "title": "Module Title",
-      "description": "Detailed module description",
-      "prerequisites": "Any prerequisites for this module",
+      "description": "Detailed module description covering why this module matters, what it builds toward, and how it applies in real-world contexts.",
+      "prerequisites": "Specific prerequisites required for this module",
       "dependencies": ["list of module_ids this depends on"],
-      "resources": ["Specific, high-quality resource 1", "Resource 2", "..."],
-      "learning_objectives": ["Objective 1", "Objective 2", "..."],
-      "estimated_duration": "Realistic time estimate",
-      "assessment": "Specific assessment activity",
-      "additional_notes": "Any additional guidance"
+      "resources": [
+        "Specific course: [Course Name] by [Instructor] on [Platform]", 
+        "Book: [Title] by [Author]",
+        "Video: [Title] by [Creator] on YouTube",
+        "Tool: [Name] for interactive practice"
+      ],
+      "learning_objectives": ["Specific objective 1 using action verbs", "Objective 2", "..."],
+      "estimated_duration": "Detailed time breakdown (e.g., 10 hours: 4h theory, 6h practice)",
+      "assessment": "Detailed project idea with evaluation criteria",
+      "additional_notes": "Tips, common pitfalls, and learning approach suggestions"
     },
     // Additional modules...
   ]
@@ -438,6 +461,16 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
         '${learningGoals != null ? ' to $learningGoals' : ''}'
         '$focusAreasText.';
 
+    // Determine appropriate resources based on learning style
+    final List<String> resourcesByStyle = _getResourcesByLearningStyle(
+        topic: topic, learningStyle: learningStyle ?? 'balanced');
+
+    // Create more specific assessment activities
+    final String assessmentActivity = _getAssessmentByLevel(
+      topic: topic,
+      knowledgeLevel: knowledgeLevel,
+    );
+
     return {
       "title": "Learning Path: $capitalizedTopic",
       "description": pathDescription,
@@ -446,90 +479,171 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
         {
           "module_id": "1",
           "title": "$levelLabel Introduction to $capitalizedTopic",
-          "description": "Learn the fundamentals and core concepts of $topic.",
+          "description":
+              "This foundational module provides a comprehensive introduction to $topic, covering core concepts and terminology. Understanding these fundamentals is essential as they form the building blocks for all further learning in this subject. This knowledge will enable you to communicate effectively about $topic and recognize its applications in real-world scenarios.",
           "prerequisites": knowledgeLevel == 'beginner'
               ? "No prior knowledge required"
               : "Basic understanding of the subject area",
           "dependencies": [],
           "resources": [
-            "Search for '$topic fundamentals' on YouTube",
-            "Look for beginner guides on $topic online",
-            "Join online communities focused on $topic for support"
+            ...resourcesByStyle.take(3),
+            "Interactive exercises: Practice basic $topic concepts through hands-on activities on reputable learning platforms",
+            "Community: Join online forums like Reddit r/${topic.replaceAll(' ', '')}, Discord groups, or Stack Overflow to connect with others learning $topic"
           ],
           "learning_objectives": [
-            "Understand basic terminology related to $topic",
-            "Identify the key components and concepts of $topic",
-            "Build a foundation for more advanced learning"
+            "Define and explain key terminology and concepts in $topic",
+            "Identify the main components and principles of $topic systems",
+            "Recognize how $topic is applied in various real-world contexts",
+            "Build a solid conceptual foundation for more advanced $topic learning"
           ],
           "estimated_duration": knowledgeLevel == 'beginner'
               ? (timeCommitment != null
-                  ? "Approximately ${timeCommitment.contains('hour') ? '1-2 weeks' : '1 week'}"
-                  : defaultDurations[knowledgeLevel])
-              : "1 week",
-          "assessment": "Create a concept map of $topic fundamentals",
-          "additional_notes": "Created as fallback due to AI generation error"
+                  ? "2 weeks (8-10 hours total: 4h theory, 6h practice)"
+                  : "1-2 weeks (10-12 hours total: 5h theory, 7h practice)")
+              : "1 week (6-8 hours total: 3h theory, 5h practice)",
+          "assessment": assessmentActivity,
+          "additional_notes":
+              "Focus on understanding the 'why' behind concepts rather than just memorizing information. Creating your own notes and diagrams will significantly improve retention. If you find certain concepts challenging, don't hesitate to explore multiple explanations from different resources."
         },
         {
           "module_id": "2",
           "title": "Core $capitalizedTopic Skills",
           "description":
-              "Develop the essential skills needed for $topic mastery.",
-          "prerequisites": "$levelLabel understanding of $topic",
+              "This module builds on the foundational knowledge to develop essential practical skills in $topic. These core skills represent the most commonly used techniques and approaches in real-world applications. Mastering these skills will allow you to solve standard problems in the field and prepare you for more specialized applications in later modules.",
+          "prerequisites": "$levelLabel understanding of $topic fundamentals",
           "dependencies": ["1"],
           "resources": [
-            "Practice exercises for $topic skills",
-            "Intermediate tutorials on $topic",
-            learningStyle == 'visual'
-                ? "Video courses on $topic"
-                : learningStyle == 'practical'
-                    ? "Hands-on projects for $topic"
-                    : learningStyle == 'theoretical'
-                        ? "Academic papers on $topic fundamentals"
-                        : "Mixed media resources on $topic"
+            ...resourcesByStyle.skip(1).take(3),
+            "Documentation: Official guides and documentation for $topic platforms and tools",
+            "Practice Projects: Complete guided projects that implement core $topic techniques",
+            "Video Series: Comprehensive tutorials walking through practical $topic implementations"
           ],
           "learning_objectives": [
-            "Apply basic $topic techniques to simple problems",
-            "Develop proficiency in core $topic methods",
-            "Create simple solutions using $topic approaches"
+            "Apply fundamental $topic techniques to solve common problems",
+            "Implement basic $topic solutions with proper structure and organization",
+            "Analyze and debug issues in simple $topic implementations",
+            "Combine multiple $topic concepts to build functional applications"
           ],
           "estimated_duration": knowledgeLevel == 'beginner'
               ? (timeCommitment != null
-                  ? "Approximately ${timeCommitment.contains('hour') ? '2-3 weeks' : '2 weeks'}"
-                  : defaultDurations[knowledgeLevel])
-              : "2 weeks",
-          "assessment": "Complete practice exercises",
-          "additional_notes": "Focus on practical application"
+                  ? "3 weeks (15-18 hours total: 6h theory, 12h practice)"
+                  : "2-3 weeks (18-20 hours total: 8h theory, 12h practice)")
+              : "2 weeks (12-15 hours total: 5h theory, 10h practice)",
+          "assessment":
+              "Develop a small but complete project implementing the core concepts of $topic. Your implementation should demonstrate proper use of standard techniques, include appropriate error handling, and follow established best practices. Have peers or mentors review your code and provide feedback.",
+          "additional_notes":
+              "${learningStyle == 'visual' ? 'Consider creating diagrams or flowcharts to visualize how different components of your project interact.' : learningStyle == 'practical' ? 'Spend extra time on hands-on exercises, focusing on writing code and solving problems.' : learningStyle == 'theoretical' ? 'Make sure to understand the underlying principles and mathematics behind the techniques.' : 'Balance theoretical understanding with practical implementation for the best results.'} Keep track of challenges you encounter to revisit later."
         },
         {
           "module_id": "3",
-          "title": "Advanced $capitalizedTopic",
+          "title": "Advanced $capitalizedTopic Concepts",
           "description":
-              "Explore advanced topics and specialized areas within $topic.",
-          "prerequisites": "Core skills in $topic",
+              "This advanced module explores sophisticated techniques and specialized areas within $topic. These concepts represent the cutting edge of the field and will enable you to tackle complex, non-standard problems. Understanding these advanced topics will differentiate you as a $topic specialist and allow you to contribute to innovative solutions in the field.",
+          "prerequisites": "Solid grasp of core $topic skills and techniques",
           "dependencies": ["2"],
           "resources": [
-            "Advanced online courses on $topic",
-            "Research papers and articles on $topic",
+            "Academic Papers: Recent research publications on advanced $topic techniques",
+            "Advanced Courses: Specialized courses focusing on cutting-edge $topic approaches",
+            "Expert Blogs: In-depth articles from leading practitioners in the $topic field",
+            "GitHub Repositories: Study code from advanced open-source $topic projects",
             focusAreas != null && focusAreas.isNotEmpty
-                ? "Specialized resources on ${focusAreas.join(' and ')}"
-                : "Deep dive materials on $topic specializations"
+                ? "Specialized Resources: Materials focusing specifically on ${focusAreas.join(' and ')}"
+                : "Industry Case Studies: Real-world examples of advanced $topic implementations"
           ],
           "learning_objectives": [
-            "Apply advanced techniques to complex problems",
-            "Analyze and evaluate $topic approaches",
-            "Design comprehensive solutions using $topic"
+            "Implement advanced $topic techniques to solve complex problems",
+            "Evaluate and select appropriate approaches for different $topic scenarios",
+            "Design comprehensive, scalable solutions using $topic principles",
+            "Critically analyze existing $topic implementations and suggest improvements"
           ],
           "estimated_duration": knowledgeLevel == 'advanced'
               ? (timeCommitment != null
-                  ? "Approximately ${timeCommitment.contains('hour') ? '2-3 weeks' : '2 weeks'}"
-                  : defaultDurations[knowledgeLevel])
-              : "3 weeks",
-          "assessment": "Create a capstone project",
+                  ? "3 weeks (18-20 hours total: 7h theory, 13h practice)"
+                  : "3-4 weeks (20-25 hours total: 8h theory, 17h practice)")
+              : "4 weeks (25-30 hours total: 10h theory, 20h practice)",
+          "assessment":
+              "Design and implement a comprehensive project that addresses a real-world problem using advanced $topic techniques. Your solution should demonstrate mastery of complex concepts, efficient implementation, and should include documentation explaining your approach and design decisions. Present your project to peers for feedback.",
           "additional_notes":
-              "Customize this module based on your specific interests in $topic"
+              "At this advanced stage, consider contributing to open-source projects related to $topic or publishing your own findings and implementations. Joining professional communities and participating in discussions will further enhance your expertise. Stay updated with the latest developments in the field through research papers and conference proceedings."
         }
       ]
     };
+  }
+
+  /// Get curated resources based on learning style
+  static List<String> _getResourcesByLearningStyle({
+    required String topic,
+    required String learningStyle,
+  }) {
+    final capitalizedTopic = topic[0].toUpperCase() + topic.substring(1);
+
+    switch (learningStyle.toLowerCase()) {
+      case 'visual':
+        return [
+          "Video Course: Comprehensive visual guide to $topic on Coursera or Udemy",
+          "YouTube Channel: Illustrated tutorials on $topic fundamentals by established educators",
+          "Infographics: Visual summaries of key $topic concepts on websites like Visual.ly",
+          "Interactive Diagrams: Explore $topic through interactive visualizations on platforms like Observable",
+          "Animated Tutorials: Step-by-step animated explanations of $topic processes"
+        ];
+
+      case 'practical':
+        return [
+          "Hands-on Workshop: Interactive $topic workshops on platforms like Codecademy or DataCamp",
+          "Project-based Course: Build practical $topic projects on platforms like Pluralsight",
+          "GitHub Repository: Annotated example projects implementing $topic concepts",
+          "Interactive Tutorials: Step-by-step exercises on $topic with immediate feedback",
+          "Coding Challenges: Progressive $topic challenges on platforms like HackerRank or LeetCode"
+        ];
+
+      case 'theoretical':
+        return [
+          "Textbook: '$capitalizedTopic Fundamentals' by respected authors in the field",
+          "Academic Course: University-level lectures on $topic theory from MIT OCW or Stanford Online",
+          "Research Papers: Foundational papers explaining core $topic principles",
+          "In-depth Articles: Theoretical explanations of $topic concepts on platforms like Medium or arXiv",
+          "Mathematics: Exploring the mathematical foundations of $topic on Khan Academy"
+        ];
+
+      case 'interactive':
+        return [
+          "Interactive Platform: Hands-on learning through platforms like Codecademy or freeCodeCamp",
+          "Tutorial Projects: Guided interactive projects building $topic applications",
+          "Simulation Tools: Interactive simulators demonstrating $topic principles",
+          "Live Workshops: Participate in online workshops focused on $topic implementation",
+          "Community Challenges: Engage with $topic problems in community platforms"
+        ];
+
+      case 'balanced':
+      default:
+        return [
+          "Comprehensive Course: Well-rounded $topic course on platforms like Coursera or edX",
+          "Book: '$capitalizedTopic - A Practical Approach' with both theory and implementation",
+          "YouTube Series: Balanced tutorials covering theory and practice of $topic",
+          "Tutorial Website: Step-by-step guides with explanations and exercises on $topic",
+          "Documentation: Official guides and resources for $topic frameworks and tools"
+        ];
+    }
+  }
+
+  /// Get appropriate assessment activity based on knowledge level
+  static String _getAssessmentByLevel({
+    required String topic,
+    required String knowledgeLevel,
+  }) {
+    switch (knowledgeLevel.toLowerCase()) {
+      case 'beginner':
+        return "Create a concept map of $topic fundamentals and explain the relationships between key concepts. Then implement a simple project that demonstrates basic principles. Document your learning process and the challenges you encountered.";
+
+      case 'intermediate':
+        return "Develop a medium-sized project that incorporates multiple aspects of $topic. Include proper documentation, testing, and follow best practices. Present your implementation choices and explain how you solved specific challenges in the project.";
+
+      case 'advanced':
+        return "Design and implement a complex $topic solution that addresses a real-world problem. Your implementation should demonstrate advanced techniques, optimization considerations, and thorough documentation. Include a detailed analysis of your approach compared to alternatives and a reflection on potential improvements.";
+
+      default:
+        return "Create a comprehensive project applying $topic concepts and principles. Document your process, justify your design decisions, and reflect on what you've learned. Share your project with peers for feedback and suggestions for improvement.";
+    }
   }
 
   /// Create a learning path from Gemini-generated data
