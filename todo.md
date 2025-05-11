@@ -25,185 +25,136 @@ This document outlines the comprehensive plan to enhance the AI Learning Path Ge
 - Improve the relevance and effectiveness of generated content
 
 ### Tasks
-- [ ] **(P0, E2)** Design and implement a pre-generation questionnaire UI
-- [ ] **(P0, E1)** Add knowledge level assessment (beginner/intermediate/advanced)
-- [ ] **(P0, E2)** Create learning goals specification component
-- [ ] **(P1, E2)** Implement time commitment options (daily/weekly available hours)
-- [ ] **(P1, E1)** Add learning style preferences selection
-- [ ] **(P1, E2)** Develop specific focus areas selection within topics
-- [ ] **(P2, E2)** Integrate a quick knowledge test for major topics to better assess starting level
-- [ ] **(P2, E3)** Create an AI-driven interview system to refine learning goals
+- [x] **(P0, E2)** Redesign AI prompt structure to incorporate user preferences
+- [x] **(P0, E2)** Design and implement a pre-generation questionnaire UI
+- [x] **(P0, E1)** Enhance the fallback mechanism to account for personalization
+- [x] **(P0, E1)** Verify proper Supabase integration and database connectivity
+- [ ] **(P1, E2)** Add ability to specify desired learning outcomes
+- [ ] **(P1, E2)** Implement learning style preference selection
+- [ ] **(P2, E1)** Create user profile-based suggestions
 
-## 2. Richer AI Prompt Engineering
-
-### Goals
-- Improve the quality and specificity of AI-generated learning paths
-- Provide more structured and useful content in each module
-- Ensure consistent high-quality outputs
-
-### Tasks
-- [ ] **(P0, E1)** Redesign the AI prompt structure to incorporate user preferences
-- [ ] **(P0, E2)** Develop domain-specific prompts for popular topics
-- [ ] **(P1, E2)** Implement multi-step generation with user feedback points
-- [ ] **(P1, E1)** Add high-quality examples to the prompts
-- [ ] **(P1, E2)** Enhance the JSON structure for more detailed module information
-- [ ] **(P2, E3)** Implement a prompt testing and refinement system
-- [ ] **(P2, E2)** Create a fallback hierarchy with increasingly specific templates
-
-## 3. Enhanced Visualization and Interaction
+## 2. Learning Path Visualization and Navigation Improvements
 
 ### Goals
-- Create a more engaging and intuitive visualization system
-- Improve navigation and interaction with the learning path
-- Support different visualization preferences
+- Create a more intuitive and visually appealing learning experience
+- Improve information hierarchy and organization
+- Make navigation and progression tracking clearer
 
 ### Tasks
-- [ ] **(P0, E3)** Improve the existing graph visualization (smoother interactions, better aesthetics)
-- [ ] **(P1, E3)** Implement an alternative timeline visualization option
-- [ ] **(P1, E2)** Add enhanced module relationship indicators
-- [ ] **(P1, E3)** Create drag-and-drop reorganization functionality
-- [ ] **(P1, E2)** Implement dedicated zoom and pan controls
-- [ ] **(P2, E2)** Add collapsible sections for completed modules
-- [ ] **(P2, E4)** Develop an optional 3D visualization for complex paths
-- [ ] **(P3, E3)** Create a VR-compatible visualization (future enhancement)
+- [ ] **(P0, E3)** Redesign the graph visualization with improved aesthetics
+- [ ] **(P0, E2)** Add module dependency visualization improvements
+- [ ] **(P1, E2)** Implement zoom and pan controls for complex paths
+- [ ] **(P1, E2)** Add progress tracking directly on the visualization
+- [ ] **(P2, E2)** Add minimap for navigation of complex learning paths
+- [ ] **(P2, E3)** Create alternative visualization modes (list, timeline, etc.)
 
-## 4. Resource Integration
+## 3. Learning Module Content Enhancement
 
 ### Goals
-- Provide directly actionable learning resources
-- Enhance the value and practicality of each module
-- Create a comprehensive learning ecosystem
+- Improve the quality and usefulness of generated module content
+- Provide more specific and actionable resources and assessments
+- Support different learning modalities
 
 ### Tasks
-- [ ] **(P0, E3)** Implement YouTube API integration for tutorial recommendations
-- [ ] **(P0, E3)** Add online course finder (Coursera, Udemy, etc.)
-- [ ] **(P1, E2)** Create documentation links through Google search API
-- [ ] **(P1, E2)** Implement resource preview functionality
-- [ ] **(P1, E3)** Develop a resource rating and quality filtering system
-- [ ] **(P2, E2)** Add book recommendations with ISBN links
-- [ ] **(P2, E3)** Implement a way to mark resources as helpful/not helpful
-- [ ] **(P3, E3)** Create a system to find local resources (libraries, meetups)
+- [ ] **(P0, E2)** Enhance AI prompts for more detailed module descriptions
+- [ ] **(P0, E2)** Improve resource specification with direct links where possible
+- [ ] **(P1, E2)** Add media type categorization for resources
+- [ ] **(P1, E2)** Generate more specific learning objectives for each module
+- [ ] **(P1, E2)** Improve assessment suggestions with specific criteria
+- [ ] **(P2, E3)** Add difficulty estimation for each module
 
-## 5. Smart Adaptability
+## 4. Progress Tracking and Achievements
 
 ### Goals
-- Make learning paths responsive to user progress and feedback
-- Create a dynamic learning experience that evolves with the user
-- Optimize learning efficiency and engagement
+- Provide better motivation and accountability
+- Make progress more visible and rewarding
+- Integrate with the app's gamification features
 
 ### Tasks
-- [ ] **(P1, E3)** Implement progress-based recommendations
-- [ ] **(P1, E2)** Create a module feedback system
-- [ ] **(P1, E3)** Develop alternative path suggestions for struggling users
-- [ ] **(P2, E2)** Add time adjustment functionality
-- [ ] **(P2, E2)** Implement optional challenge modules
-- [ ] **(P2, E3)** Create an AI-powered progress assessment system
-- [ ] **(P3, E4)** Develop a fully adaptive learning algorithm
+- [ ] **(P0, E2)** Enhance module completion tracking
+- [ ] **(P0, E2)** Add learning path-specific achievements
+- [ ] **(P1, E2)** Implement milestone celebrations
+- [ ] **(P1, E3)** Create learning path completion certificates
+- [ ] **(P2, E2)** Add time-based tracking and reminders
 
-## 6. Social and Collaborative Features
+## 5. Social and Community Features
 
 ### Goals
-- Enable social learning and knowledge sharing
-- Create a community around learning paths
-- Leverage collective intelligence for path improvement
+- Allow users to share and discover learning paths
+- Create opportunities for peer learning and support
+- Build a community around learning paths
 
 ### Tasks
-- [ ] **(P1, E2)** Implement path sharing functionality
-- [ ] **(P2, E3)** Create collaborative learning features
-- [ ] **(P2, E2)** Add an expert review request system
-- [ ] **(P2, E3)** Develop community-created template sharing
-- [ ] **(P3, E4)** Implement learning circles with discussion forums
-- [ ] **(P3, E3)** Add real-time collaborative editing of paths
+- [ ] **(P1, E3)** Add ability to share learning paths
+- [ ] **(P1, E3)** Implement community rating system for shared paths
+- [ ] **(P2, E3)** Create discovery feed for popular learning paths
+- [ ] **(P2, E3)** Add commenting functionality on shared paths
+- [ ] **(P3, E3)** Implement collaborative learning path creation
 
-## 7. Learning Analytics and Insights
+## 6. Integration with Other App Features
 
 ### Goals
-- Provide users with actionable insights about their learning
-- Help identify improvement areas and optimize study habits
-- Create a data-informed learning experience
+- Create a more cohesive learning experience
+- Leverage existing app features to enhance learning paths
+- Improve cross-feature discoverability
 
 ### Tasks
-- [ ] **(P1, E3)** Implement comprehensive progress analytics
-- [ ] **(P1, E3)** Create knowledge gap detection
-- [ ] **(P2, E2)** Add learning pattern insights
-- [ ] **(P2, E2)** Implement comparison benchmarks
-- [ ] **(P2, E2)** Create an achievement and gamification system
-- [ ] **(P3, E3)** Develop predictive analytics for completion likelihood
-- [ ] **(P3, E4)** Add specialized reporting for educators/mentors
+- [ ] **(P1, E2)** Integrate note-taking with learning path modules
+- [ ] **(P1, E2)** Connect quiz generation to learning path topics
+- [ ] **(P1, E2)** Associate flashcard decks with learning path modules
+- [ ] **(P2, E3)** Add AI recommendations based on learning path progress
+- [ ] **(P2, E2)** Create dashboard widgets for active learning paths
 
-## 8. Enhanced UI/UX
+## 7. Performance and Technical Improvements
 
 ### Goals
-- Improve the overall user experience of the feature
-- Make the learning path generator more intuitive and engaging
-- Support various use cases and preferences
+- Improve reliability and responsiveness of the feature
+- Handle complex learning paths gracefully
+- Ensure seamless user experience
 
 ### Tasks
-- [ ] **(P0, E2)** Design and implement a comprehensive onboarding wizard
-- [ ] **(P1, E2)** Create customizable themes and visual options
-- [ ] **(P1, E3)** Improve mobile optimization
-- [ ] **(P1, E2)** Implement accessibility improvements
-- [ ] **(P2, E1)** Add export options (PDF, image, etc.)
-- [ ] **(P2, E2)** Create printable versions of learning paths
-- [ ] **(P3, E2)** Implement keyboard shortcuts for power users
+- [ ] **(P0, E2)** Optimize database queries for learning paths
+- [ ] **(P0, E2)** Improve error handling and fallback mechanisms
+- [ ] **(P1, E2)** Implement caching for faster rendering
+- [ ] **(P1, E2)** Add lazy loading for large learning paths
+- [ ] **(P2, E2)** Create offline support for active learning paths
 
-## 9. Robustness Improvements
+## 8. User Feedback and Iteration
 
 ### Goals
-- Improve reliability and error handling
-- Ensure consistent user experience even in edge cases
-- Support offline and low-bandwidth scenarios
+- Continuously improve the feature based on real user feedback
+- Identify and address usability issues
+- Prioritize future enhancements based on user needs
 
 ### Tasks
-- [ ] **(P0, E2)** Enhance fallback mechanism with domain-specific templates
-- [ ] **(P0, E2)** Implement partial recovery from generation failures
-- [ ] **(P1, E3)** Add basic offline support
-- [ ] **(P2, E2)** Implement version history for learning paths
-- [ ] **(P2, E2)** Create a periodic backup system
-- [ ] **(P3, E3)** Develop a fully offline mode with sync capability
-
-## 10. Integration with Other App Features
-
-### Goals
-- Create a seamless experience across app features
-- Leverage existing app functionality to enhance learning paths
-- Increase overall app engagement through feature synergy
-
-### Tasks
-- [ ] **(P1, E2)** Implement note integration with learning modules
-- [ ] **(P1, E3)** Add calendar integration for learning schedules
-- [ ] **(P2, E3)** Create flashcard integration for key concepts
-- [ ] **(P2, E2)** Implement smart progress notifications
-- [ ] **(P2, E3)** Add task management integration
-- [ ] **(P3, E3)** Develop dashboard widgets for active learning paths
+- [ ] **(P1, E1)** Add feedback mechanism within the feature
+- [ ] **(P1, E2)** Design and implement A/B testing framework
+- [ ] **(P2, E1)** Create analytics dashboard for feature usage
+- [ ] **(P2, E2)** Set up automated user surveys
+- [ ] **(P3, E2)** Implement feature suggestion voting system
 
 ---
 
-## Implementation Phases
+## Implementation Timeline
 
-### Phase 1: Foundation (1-2 months)
-- Enhanced user input and personalization
-- Richer AI prompt engineering
-- Basic UI/UX improvements
-- Enhanced fallback mechanisms
+### Phase 1 (Weeks 1-2)
+- Focus on P0 tasks from sections 1-3
+- Create foundation for personalization and visualization improvements
 
-### Phase 2: Enhancement (2-3 months)
-- Resource integration
-- Basic smart adaptability
-- Path sharing functionality
-- Progress analytics
+### Phase 2 (Weeks 3-4)
+- Complete remaining P0 tasks
+- Begin P1 tasks from sections 1-4
+- Initial testing and feedback collection
 
-### Phase 3: Advanced Features (3-4 months)
-- Enhanced visualization options
-- Full smart adaptability
-- Collaborative features
-- Integration with other app features
+### Phase 3 (Weeks 5-6)
+- Complete P1 tasks from all sections
+- Begin P2 tasks from prioritized sections
+- Conduct user testing and gather feedback
 
-### Phase 4: Future Expansion (4+ months)
-- 3D visualization
-- Advanced collaborative tools
-- Predictive analytics
-- VR compatibility
+### Phase 4 (Weeks 7-8)
+- Address feedback from testing
+- Complete high-impact P2 tasks
+- Final testing and polish
 
 ---
 

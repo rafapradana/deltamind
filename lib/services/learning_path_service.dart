@@ -365,13 +365,27 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
             debugPrint('Second JSON parsing attempt failed: $jsonError');
 
             // Fallback: Generate a basic learning path structure as a last resort
-            final fallbackPath = _createFallbackPath(topic);
+            final fallbackPath = _createFallbackPath(
+              topic: topic,
+              knowledgeLevel: knowledgeLevel,
+              learningGoals: learningGoals,
+              timeCommitment: timeCommitment,
+              learningStyle: learningStyle,
+              focusAreas: focusAreas,
+            );
             return fallbackPath;
           }
         } else {
           // If we can't extract JSON either, return a fallback
           debugPrint('Could not extract JSON structure, using fallback path');
-          return _createFallbackPath(topic);
+          return _createFallbackPath(
+            topic: topic,
+            knowledgeLevel: knowledgeLevel,
+            learningGoals: learningGoals,
+            timeCommitment: timeCommitment,
+            learningStyle: learningStyle,
+            focusAreas: focusAreas,
+          );
         }
       }
     } catch (e) {
@@ -382,34 +396,76 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
         throw Exception(
             'Gemini AI service is currently unavailable. Please try again later.');
       }
-      rethrow;
+      // Return a fallback path with user preferences
+      return _createFallbackPath(
+        topic: topic,
+        knowledgeLevel: knowledgeLevel,
+        learningGoals: learningGoals,
+        timeCommitment: timeCommitment,
+        learningStyle: learningStyle,
+        focusAreas: focusAreas,
+      );
     }
   }
 
   /// Create a fallback learning path when AI generation fails
-  static Map<String, dynamic> _createFallbackPath(String topic) {
+  static Map<String, dynamic> _createFallbackPath({
+    required String topic,
+    String knowledgeLevel = 'beginner',
+    String? learningGoals,
+    String? timeCommitment,
+    String? learningStyle,
+    List<String>? focusAreas,
+  }) {
     final capitalizedTopic = topic[0].toUpperCase() + topic.substring(1);
+    final String levelLabel =
+        knowledgeLevel[0].toUpperCase() + knowledgeLevel.substring(1);
+
+    // Default time estimates based on knowledge level
+    final Map<String, String> defaultDurations = {
+      'beginner': '1-2 weeks',
+      'intermediate': '2-3 weeks',
+      'advanced': '3-4 weeks',
+    };
+
+    // Handle focus areas if provided
+    final focusAreasText = focusAreas != null && focusAreas.isNotEmpty
+        ? ' with a focus on ${focusAreas.join(', ')}'
+        : '';
+
+    final String pathDescription =
+        'A comprehensive learning path for $topic designed for $knowledgeLevel learners'
+        '${learningGoals != null ? ' to $learningGoals' : ''}'
+        '$focusAreasText.';
 
     return {
       "title": "Learning Path: $capitalizedTopic",
-      "description": "A comprehensive learning path for $topic.",
+      "description": pathDescription,
       "is_fallback": true,
       "modules": [
         {
           "module_id": "1",
-          "title": "Introduction to $capitalizedTopic",
+          "title": "$levelLabel Introduction to $capitalizedTopic",
           "description": "Learn the fundamentals and core concepts of $topic.",
-          "prerequisites": "No prior knowledge required",
+          "prerequisites": knowledgeLevel == 'beginner'
+              ? "No prior knowledge required"
+              : "Basic understanding of the subject area",
           "dependencies": [],
           "resources": [
             "Search for '$topic fundamentals' on YouTube",
-            "Look for beginner guides on $topic online"
+            "Look for beginner guides on $topic online",
+            "Join online communities focused on $topic for support"
           ],
           "learning_objectives": [
             "Understand basic terminology related to $topic",
-            "Identify the key components and concepts of $topic"
+            "Identify the key components and concepts of $topic",
+            "Build a foundation for more advanced learning"
           ],
-          "estimated_duration": "1 week",
+          "estimated_duration": knowledgeLevel == 'beginner'
+              ? (timeCommitment != null
+                  ? "Approximately ${timeCommitment.contains('hour') ? '1-2 weeks' : '1 week'}"
+                  : defaultDurations[knowledgeLevel])
+              : "1 week",
           "assessment": "Create a concept map of $topic fundamentals",
           "additional_notes": "Created as fallback due to AI generation error"
         },
@@ -418,17 +474,29 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
           "title": "Core $capitalizedTopic Skills",
           "description":
               "Develop the essential skills needed for $topic mastery.",
-          "prerequisites": "Basic understanding of $topic",
+          "prerequisites": "$levelLabel understanding of $topic",
           "dependencies": ["1"],
           "resources": [
             "Practice exercises for $topic skills",
-            "Intermediate tutorials on $topic"
+            "Intermediate tutorials on $topic",
+            learningStyle == 'visual'
+                ? "Video courses on $topic"
+                : learningStyle == 'practical'
+                    ? "Hands-on projects for $topic"
+                    : learningStyle == 'theoretical'
+                        ? "Academic papers on $topic fundamentals"
+                        : "Mixed media resources on $topic"
           ],
           "learning_objectives": [
             "Apply basic $topic techniques to simple problems",
-            "Develop proficiency in core $topic methods"
+            "Develop proficiency in core $topic methods",
+            "Create simple solutions using $topic approaches"
           ],
-          "estimated_duration": "2 weeks",
+          "estimated_duration": knowledgeLevel == 'beginner'
+              ? (timeCommitment != null
+                  ? "Approximately ${timeCommitment.contains('hour') ? '2-3 weeks' : '2 weeks'}"
+                  : defaultDurations[knowledgeLevel])
+              : "2 weeks",
           "assessment": "Complete practice exercises",
           "additional_notes": "Focus on practical application"
         },
@@ -441,13 +509,21 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
           "dependencies": ["2"],
           "resources": [
             "Advanced online courses on $topic",
-            "Research papers and articles on $topic"
+            "Research papers and articles on $topic",
+            focusAreas != null && focusAreas.isNotEmpty
+                ? "Specialized resources on ${focusAreas.join(' and ')}"
+                : "Deep dive materials on $topic specializations"
           ],
           "learning_objectives": [
             "Apply advanced techniques to complex problems",
-            "Analyze and evaluate $topic approaches"
+            "Analyze and evaluate $topic approaches",
+            "Design comprehensive solutions using $topic"
           ],
-          "estimated_duration": "3 weeks",
+          "estimated_duration": knowledgeLevel == 'advanced'
+              ? (timeCommitment != null
+                  ? "Approximately ${timeCommitment.contains('hour') ? '2-3 weeks' : '2 weeks'}"
+                  : defaultDurations[knowledgeLevel])
+              : "3 weeks",
           "assessment": "Create a capstone project",
           "additional_notes":
               "Customize this module based on your specific interests in $topic"
