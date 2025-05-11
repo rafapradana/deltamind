@@ -96,7 +96,7 @@ This document outlines the comprehensive plan to enhance the AI Learning Path Ge
 ### Tasks
 - [ ] **(P1, E2)** Implement advanced search functionality for learning paths
 - [ ] **(P1, E2)** Create filtering options by topic, difficulty, duration
-- [ ] **(P1, E1)** Add tags and categories to learning paths
+- [x] **(P1, E1)** Add tags and categories to learning paths
 - [ ] **(P1, E2)** Develop a recommendation system for related paths
 - [ ] **(P2, E2)** Implement user-based recommendations
 - [ ] **(P2, E1)** Add popular and trending paths section
@@ -227,3 +227,11 @@ This document outlines the comprehensive plan to enhance the AI Learning Path Ge
 ---
 
 *This document is a living plan and will be updated as development progresses and new insights emerge.* 
+
+- [x] **(P1, E1)** Add tags and categories to learning paths 
+  - Added tags, categories, and difficulty fields to learning paths in the database
+  - Updated models to support these new fields
+  - Enhanced AI prompts to generate appropriate tags and categories
+  - Added a filtering interface to search by tags, categories, and difficulty
+  - Implemented tag display in both the path list and detail views
+  - Added option for users to suggest tags during path generation 

@@ -17,6 +17,7 @@ class _GeneratePathDialogState extends State<GeneratePathDialog> {
   final _learningGoalsController = TextEditingController();
   final _timeCommitmentController = TextEditingController();
   final _focusAreasController = TextEditingController();
+  final _suggestedTagsController = TextEditingController();
   String _knowledgeLevel = 'beginner';
   String _learningStyle = 'balanced';
   bool _isAdvancedOptionsVisible = false;
@@ -42,6 +43,7 @@ class _GeneratePathDialogState extends State<GeneratePathDialog> {
     _learningGoalsController.dispose();
     _timeCommitmentController.dispose();
     _focusAreasController.dispose();
+    _suggestedTagsController.dispose();
     super.dispose();
   }
 
@@ -54,6 +56,15 @@ class _GeneratePathDialogState extends State<GeneratePathDialog> {
     final timeCommitment = _timeCommitmentController.text.trim();
     final focusAreas = _focusAreasController.text.trim().isNotEmpty
         ? _focusAreasController.text
+            .trim()
+            .split(',')
+            .map((e) => e.trim())
+            .toList()
+        : null;
+
+    // Process suggested tags
+    final suggestedTags = _suggestedTagsController.text.trim().isNotEmpty
+        ? _suggestedTagsController.text
             .trim()
             .split(',')
             .map((e) => e.trim())
@@ -74,6 +85,7 @@ class _GeneratePathDialogState extends State<GeneratePathDialog> {
         timeCommitment: timeCommitment.isNotEmpty ? timeCommitment : null,
         learningStyle: _learningStyle,
         focusAreas: focusAreas,
+        suggestedTags: suggestedTags,
       );
 
       if (!mounted) return;
@@ -250,183 +262,231 @@ class _GeneratePathDialogState extends State<GeneratePathDialog> {
                                 !_isAdvancedOptionsVisible;
                           });
                         },
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isAdvancedOptionsVisible
-                            ? PhosphorIcons.caretDown(
-                                PhosphorIconsStyle.regular)
-                            : PhosphorIcons.caretRight(
-                                PhosphorIconsStyle.regular),
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Advanced Options',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isAdvancedOptionsVisible
+                              ? PhosphorIcons.caretDown(
+                                  PhosphorIconsStyle.regular)
+                              : PhosphorIcons.caretRight(
+                                  PhosphorIconsStyle.regular),
+                          size: 16,
+                          color: Colors.grey.shade700,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          'Advanced Options',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          _isAdvancedOptionsVisible ? 'Hide' : 'Show',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
-                // Advanced options
-                if (_isAdvancedOptionsVisible) ...[
-                  const SizedBox(height: 16),
-
-                  // Learning goals
-                  TextFormField(
-                    controller: _learningGoalsController,
-                    decoration: InputDecoration(
-                      labelText: 'Learning Goals',
-                      hintText: 'What do you want to achieve with this path?',
-                      prefixIcon: Icon(
-                        PhosphorIcons.target(PhosphorIconsStyle.regular),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                    ),
-                    enabled: !_isGenerating,
-                    maxLines: 2,
-                    textInputAction: TextInputAction.next,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Time commitment
-                  TextFormField(
-                    controller: _timeCommitmentController,
-                    decoration: InputDecoration(
-                      labelText: 'Time Commitment',
-                      hintText: 'e.g. 2 hours daily, 10 hours weekly',
-                      prefixIcon: Icon(
-                        PhosphorIcons.clock(PhosphorIconsStyle.regular),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                    ),
-                    enabled: !_isGenerating,
-                    textInputAction: TextInputAction.next,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Learning style
-                  DropdownButtonFormField<String>(
-                    value: _learningStyle,
-                    decoration: InputDecoration(
-                      labelText: 'Learning Style',
-                      prefixIcon: Icon(
-                        PhosphorIcons.brain(PhosphorIconsStyle.regular),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                    ),
-                    items: _learningStyles
-                        .map((style) => DropdownMenuItem(
-                              value: style,
-                              child: Text(
-                                style[0].toUpperCase() + style.substring(1),
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: _isGenerating
-                        ? null
-                        : (value) {
-                            if (value != null) {
-                              setState(() {
-                                _learningStyle = value;
-                              });
-                            }
-                          },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Focus areas
-                  TextFormField(
-                    controller: _focusAreasController,
-                    decoration: InputDecoration(
-                      labelText: 'Focus Areas',
-                      hintText:
-                          'Comma-separated list of specific areas to focus on',
-                      prefixIcon: Icon(
-                        PhosphorIcons.magnifyingGlass(
-                            PhosphorIconsStyle.regular),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                    ),
-                    enabled: !_isGenerating,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _generatePath(),
-                  ),
-                ],
+                // Advanced options section
+                _buildAdvancedOptions(),
 
                 const SizedBox(height: 24),
 
-                // Help text
-                Text(
-                  'The AI will create a customized learning path with multiple modules tailored to your preferences.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade700,
-                      ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: _isGenerating
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                // Generate button
+                ElevatedButton(
+                  onPressed: _isGenerating ? null : _generatePath,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
-                      onPressed: _isGenerating ? null : _generatePath,
-                      icon: _isGenerating
-                          ? const SizedBox(
+                    disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
+                  ),
+                  child: _isGenerating
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
-                            )
-                          : Icon(
-                              PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
-                              size: 16,
                             ),
-                      label: Text(_isGenerating ? 'Generating...' : 'Generate'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                            const SizedBox(width: 12),
+                            const Text('Generating...'),
+                          ],
+                        )
+                      : const Text('Generate Learning Path'),
+                ),
+
+                if (!_isGenerating)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Text(
+                      'This will create an AI-powered personalized learning path',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Build the advanced options section
+  Widget _buildAdvancedOptions() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Container(
+        height: _isAdvancedOptionsVisible ? null : 0,
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // Learning goals
+            TextFormField(
+              controller: _learningGoalsController,
+              decoration: InputDecoration(
+                labelText: 'Learning Goals (Optional)',
+                hintText:
+                    'What do you want to achieve with this learning path?',
+                prefixIcon:
+                    Icon(PhosphorIcons.target(PhosphorIconsStyle.regular)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+              ),
+              enabled: !_isGenerating,
+              minLines: 1,
+              maxLines: 2,
+              textInputAction: TextInputAction.next,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Learning style
+            DropdownButtonFormField<String>(
+              value: _learningStyle,
+              decoration: InputDecoration(
+                labelText: 'Learning Style (Optional)',
+                prefixIcon:
+                    Icon(PhosphorIcons.brain(PhosphorIconsStyle.regular)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+              ),
+              items: _learningStyles
+                  .map((style) => DropdownMenuItem(
+                        value: style,
+                        child: Text(
+                          style[0].toUpperCase() + style.substring(1),
+                        ),
+                      ))
+                  .toList(),
+              onChanged: _isGenerating
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() {
+                          _learningStyle = value;
+                        });
+                      }
+                    },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Time commitment
+            TextFormField(
+              controller: _timeCommitmentController,
+              decoration: InputDecoration(
+                labelText: 'Time Commitment (Optional)',
+                hintText: 'e.g. 2 hours daily, 8 hours per week',
+                prefixIcon:
+                    Icon(PhosphorIcons.clock(PhosphorIconsStyle.regular)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+              ),
+              enabled: !_isGenerating,
+              textInputAction: TextInputAction.next,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Focus areas
+            TextFormField(
+              controller: _focusAreasController,
+              decoration: InputDecoration(
+                labelText: 'Focus Areas (Optional)',
+                hintText:
+                    'Enter specific areas to focus on, separated by commas',
+                prefixIcon: Icon(
+                    PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+              ),
+              enabled: !_isGenerating,
+              textInputAction: TextInputAction.next,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Suggested tags
+            TextFormField(
+              controller: _suggestedTagsController,
+              decoration: InputDecoration(
+                labelText: 'Suggested Tags (Optional)',
+                hintText:
+                    'Enter tags separated by commas for better organization',
+                prefixIcon: Icon(PhosphorIcons.tag(PhosphorIconsStyle.regular)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                helperText:
+                    'These tags will be used to categorize and filter your learning path',
+              ),
+              enabled: !_isGenerating,
+              textInputAction: TextInputAction.done,
+            ),
+          ],
         ),
       ),
     );

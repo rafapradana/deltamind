@@ -244,6 +244,7 @@ class LearningPathService {
     String? timeCommitment, // e.g. "2 hours daily for 3 weeks"
     String? learningStyle, // e.g. "visual", "practical", "theoretical"
     List<String>? focusAreas,
+    List<String>? suggestedTags,
   }) async {
     try {
       SupabaseService.checkAuthentication();
@@ -258,6 +259,7 @@ USER PREFERENCES:
 - Time Commitment: ${timeCommitment?.isNotEmpty == true ? timeCommitment : 'Flexible'}
 - Learning Style: ${learningStyle?.isNotEmpty == true ? learningStyle : 'Balanced approach'}
 - Focus Areas: ${focusAreas != null && focusAreas.isNotEmpty ? focusAreas.join(', ') : 'All aspects of the topic'}
+- Suggested Tags: ${suggestedTags != null && suggestedTags.isNotEmpty ? suggestedTags.join(', ') : 'Generate appropriate tags based on content'}
 
 Please create 5-8 modules that follow a logical progression from ${knowledgeLevel.isNotEmpty ? knowledgeLevel : 'beginner'} to advanced, with consideration for:
 
@@ -297,11 +299,20 @@ Please create 5-8 modules that follow a logical progression from ${knowledgeLeve
 
 10. **Additional Notes**: Include important tips, common pitfalls to avoid, or alternative learning approaches based on the user's learning style.
 
+11. **Categorization and Tagging**: Please also include:
+    - An appropriate category for this learning path (e.g., "Programming", "Data Science", "Language Learning", etc.)
+    - Difficulty level based on the user's knowledge level (beginner, intermediate, advanced)
+    - 3-5 relevant tags that describe the learning path's content and can be used for searching and filtering
+    - If the user provided suggested tags, please incorporate these in your tag selection: ${suggestedTags != null && suggestedTags.isNotEmpty ? suggestedTags.join(', ') : 'No specific tags suggested'}
+
 Format your response as a JSON object with the following structure:
 ```json
 {
   "title": "Learning Path: [Topic Name]",
   "description": "A comprehensive learning path for [topic], designed for [knowledge level] learners focused on [learning goals].",
+  "category": "Main category for this learning path",
+  "difficulty": "beginner|intermediate|advanced",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
   "modules": [
     {
       "module_id": "1",
@@ -395,6 +406,7 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
               timeCommitment: timeCommitment,
               learningStyle: learningStyle,
               focusAreas: focusAreas,
+              suggestedTags: suggestedTags,
             );
             return fallbackPath;
           }
@@ -408,6 +420,7 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
             timeCommitment: timeCommitment,
             learningStyle: learningStyle,
             focusAreas: focusAreas,
+            suggestedTags: suggestedTags,
           );
         }
       }
@@ -427,6 +440,7 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
         timeCommitment: timeCommitment,
         learningStyle: learningStyle,
         focusAreas: focusAreas,
+        suggestedTags: suggestedTags,
       );
     }
   }
@@ -439,6 +453,7 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
     String? timeCommitment,
     String? learningStyle,
     List<String>? focusAreas,
+    List<String>? suggestedTags,
   }) {
     final capitalizedTopic = topic[0].toUpperCase() + topic.substring(1);
     final String levelLabel =
@@ -471,9 +486,36 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
       knowledgeLevel: knowledgeLevel,
     );
 
+    // Determine category based on topic
+    String category = _getCategoryFromTopic(topic);
+
+    // Generate appropriate tags, incorporating user suggestions if provided
+    List<String> tags = suggestedTags != null && suggestedTags.isNotEmpty
+        ? List.from(suggestedTags) // Use user's suggested tags
+        : _generateTagsFromTopic(topic, knowledgeLevel, focusAreas);
+
+    // Ensure we have a reasonable number of tags (3-5)
+    if (tags.length < 3) {
+      // Add more tags if we have too few
+      final additionalTags =
+          _generateTagsFromTopic(topic, knowledgeLevel, focusAreas);
+      for (final tag in additionalTags) {
+        if (!tags.contains(tag)) {
+          tags.add(tag);
+          if (tags.length >= 5) break; // Cap at 5 tags
+        }
+      }
+    } else if (tags.length > 5) {
+      // Limit to 5 tags if we have too many
+      tags = tags.take(5).toList();
+    }
+
     return {
       "title": "Learning Path: $capitalizedTopic",
       "description": pathDescription,
+      "category": category,
+      "difficulty": knowledgeLevel,
+      "tags": tags,
       "is_fallback": true,
       "modules": [
         {
@@ -570,6 +612,124 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
     };
   }
 
+  /// Determine an appropriate category based on the topic
+  static String _getCategoryFromTopic(String topic) {
+    final topicLower = topic.toLowerCase();
+
+    // Map of keywords to categories
+    final Map<String, String> categoryMappings = {
+      'programming': 'Programming & Development',
+      'coding': 'Programming & Development',
+      'development': 'Programming & Development',
+      'software': 'Programming & Development',
+      'python': 'Programming & Development',
+      'javascript': 'Programming & Development',
+      'web': 'Web Development',
+      'html': 'Web Development',
+      'css': 'Web Development',
+      'data': 'Data Science',
+      'science': 'Data Science',
+      'analytics': 'Data Science',
+      'statistics': 'Data Science',
+      'machine learning': 'Artificial Intelligence',
+      'ai': 'Artificial Intelligence',
+      'deep learning': 'Artificial Intelligence',
+      'neural': 'Artificial Intelligence',
+      'language': 'Languages',
+      'english': 'Languages',
+      'spanish': 'Languages',
+      'french': 'Languages',
+      'german': 'Languages',
+      'design': 'Design',
+      'ui': 'Design',
+      'ux': 'Design',
+      'graphic': 'Design',
+      'music': 'Arts & Music',
+      'art': 'Arts & Music',
+      'photography': 'Arts & Music',
+      'business': 'Business',
+      'marketing': 'Business',
+      'entrepreneurship': 'Business',
+      'finance': 'Finance & Accounting',
+      'accounting': 'Finance & Accounting',
+      'investing': 'Finance & Accounting',
+      'health': 'Health & Fitness',
+      'fitness': 'Health & Fitness',
+      'nutrition': 'Health & Fitness',
+      'wellness': 'Health & Fitness',
+      'yoga': 'Health & Fitness',
+      'meditation': 'Personal Development',
+      'productivity': 'Personal Development',
+      'leadership': 'Personal Development',
+      'management': 'Personal Development',
+      'mathematics': 'Science & Mathematics',
+      'physics': 'Science & Mathematics',
+      'chemistry': 'Science & Mathematics',
+      'biology': 'Science & Mathematics',
+    };
+
+    // Check if any keywords match the topic
+    for (final entry in categoryMappings.entries) {
+      if (topicLower.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    // Default category if no matches
+    return 'Other';
+  }
+
+  /// Generate tags based on topic, knowledge level, and focus areas
+  static List<String> _generateTagsFromTopic(
+      String topic, String knowledgeLevel, List<String>? focusAreas) {
+    final Set<String> tags = <String>{};
+
+    // Start with the topic itself
+    tags.add(topic.toLowerCase());
+
+    // Add knowledge level as a tag
+    tags.add(knowledgeLevel.toLowerCase());
+
+    // Add focus areas as tags
+    if (focusAreas != null && focusAreas.isNotEmpty) {
+      for (final area in focusAreas) {
+        tags.add(area.toLowerCase());
+      }
+    }
+
+    // Add some common related terms
+    final topicLower = topic.toLowerCase();
+
+    final Map<String, List<String>> relatedTags = {
+      'programming': ['coding', 'software', 'development'],
+      'python': ['programming', 'coding', 'development'],
+      'javascript': ['programming', 'web development', 'frontend'],
+      'web': ['html', 'css', 'frontend', 'development'],
+      'data': ['analytics', 'visualization', 'statistics'],
+      'machine learning': ['ai', 'data science', 'algorithms'],
+      'design': ['ui', 'ux', 'graphic design'],
+      'music': ['instruments', 'theory', 'composition'],
+      'language': ['communication', 'grammar', 'vocabulary'],
+      'business': ['entrepreneurship', 'management', 'strategy'],
+      'finance': ['investing', 'accounting', 'economics'],
+      'health': ['fitness', 'nutrition', 'wellness'],
+    };
+
+    // Add related tags
+    for (final entry in relatedTags.entries) {
+      if (topicLower.contains(entry.key)) {
+        for (final relatedTag in entry.value) {
+          if (!topicLower.contains(relatedTag)) {
+            tags.add(relatedTag);
+          }
+        }
+      }
+    }
+
+    // Return at most 5 tags
+    return tags.take(5).toList();
+  }
+
   /// Get curated resources based on learning style
   static List<String> _getResourcesByLearningStyle({
     required String topic,
@@ -654,11 +814,25 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
       SupabaseService.checkAuthentication();
       final userId = SupabaseService.currentUser!.id;
 
+      // Extract tags, category, and difficulty from generated path
+      final List<String> tags = generatedPath['tags'] != null
+          ? List<String>.from(generatedPath['tags'])
+          : [];
+
+      final String? category = generatedPath['category'];
+
+      final String difficulty = generatedPath['difficulty'] != null
+          ? generatedPath['difficulty']
+          : 'beginner';
+
       // Create the learning path
       final LearningPath path = LearningPath(
         userId: userId,
         title: generatedPath['title'] ?? 'Learning Path',
         description: generatedPath['description'] ?? '',
+        tags: tags,
+        category: category,
+        difficulty: difficulty,
       );
 
       // Save the path first

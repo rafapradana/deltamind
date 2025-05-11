@@ -21,9 +21,21 @@ class _LearningPathsPageState extends State<LearningPathsPage>
     with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   List<LearningPath> _paths = [];
+  List<LearningPath> _filteredPaths = [];
   LearningPath? _activePath;
   String? _errorMessage;
   late TabController _tabController;
+
+  // Filtering
+  String? _selectedCategory;
+  String? _selectedDifficulty;
+  List<String> _selectedTags = [];
+  String _searchQuery = '';
+
+  // All available categories, difficulties, and tags
+  Set<String?> _availableCategories = {};
+  Set<String> _availableDifficulties = {'beginner', 'intermediate', 'advanced'};
+  Set<String> _availableTags = {};
 
   @override
   void initState() {
@@ -53,10 +65,20 @@ class _LearningPathsPageState extends State<LearningPathsPage>
       // Find the active path
       final activePath = paths.where((path) => path.isActive).firstOrNull;
 
+      // Collect all available categories and tags
+      final categories = paths.map((path) => path.category).toSet();
+      final tags = paths.fold<Set<String>>(
+        {},
+        (set, path) => set..addAll(path.tags),
+      );
+
       if (mounted) {
         setState(() {
           _paths = paths;
+          _filteredPaths = List.from(paths);
           _activePath = activePath;
+          _availableCategories = categories;
+          _availableTags = tags;
           _isLoading = false;
         });
       }
@@ -68,6 +90,53 @@ class _LearningPathsPageState extends State<LearningPathsPage>
         });
       }
     }
+  }
+
+  /// Apply filters to the learning paths
+  void _applyFilters() {
+    if (_paths.isEmpty) return;
+
+    setState(() {
+      _filteredPaths = _paths.where((path) {
+        // Filter by category
+        if (_selectedCategory != null && path.category != _selectedCategory) {
+          return false;
+        }
+
+        // Filter by difficulty
+        if (_selectedDifficulty != null &&
+            path.difficulty != _selectedDifficulty) {
+          return false;
+        }
+
+        // Filter by tags (path must contain ANY of the selected tags)
+        if (_selectedTags.isNotEmpty &&
+            !_selectedTags.any((tag) => path.tags.contains(tag))) {
+          return false;
+        }
+
+        // Filter by search query
+        if (_searchQuery.isNotEmpty) {
+          final query = _searchQuery.toLowerCase();
+          return path.title.toLowerCase().contains(query) ||
+              (path.description?.toLowerCase().contains(query) ?? false) ||
+              path.tags.any((tag) => tag.toLowerCase().contains(query));
+        }
+
+        return true;
+      }).toList();
+    });
+  }
+
+  /// Reset all filters
+  void _resetFilters() {
+    setState(() {
+      _selectedCategory = null;
+      _selectedDifficulty = null;
+      _selectedTags = [];
+      _searchQuery = '';
+      _filteredPaths = List.from(_paths);
+    });
   }
 
   /// Handle tapping on a learning path
@@ -270,11 +339,223 @@ class _LearningPathsPageState extends State<LearningPathsPage>
   Widget _buildAllPathsTab() {
     return _paths.isEmpty
         ? _buildEmptyState()
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _paths.length,
-            itemBuilder: (context, index) => _buildPathCard(_paths[index]),
+        : Column(
+            children: [
+              // Search and filter section
+              _buildSearchAndFilterSection(),
+
+              // Results count
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Row(
+                  children: [
+                    Text(
+                      '${_filteredPaths.length} ${_filteredPaths.length == 1 ? 'path' : 'paths'} found',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (_selectedCategory != null ||
+                        _selectedDifficulty != null ||
+                        _selectedTags.isNotEmpty ||
+                        _searchQuery.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: _resetFilters,
+                        icon: Icon(
+                          PhosphorIcons.x(PhosphorIconsStyle.fill),
+                          size: 16,
+                        ),
+                        label: const Text('Clear Filters'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Learning paths list
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _filteredPaths.length,
+                  itemBuilder: (context, index) =>
+                      _buildPathCard(_filteredPaths[index]),
+                ),
+              ),
+            ],
           );
+  }
+
+  /// Build search and filter section
+  Widget _buildSearchAndFilterSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Search learning paths...',
+              prefixIcon: Icon(
+                PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.fill),
+                size: 20,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              isDense: true,
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+                _applyFilters();
+              });
+            },
+          ),
+
+          const SizedBox(height: 12),
+
+          // Filter buttons
+          Row(
+            children: [
+              // Category filter
+              Expanded(
+                child: _buildFilterDropdown(
+                  hint: 'Category',
+                  value: _selectedCategory,
+                  items: _availableCategories
+                      .where((c) => c != null)
+                      .map((c) => DropdownMenuItem<String>(
+                            value: c,
+                            child: Text(
+                              c!,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                      _applyFilters();
+                    });
+                  },
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Difficulty filter
+              Expanded(
+                child: _buildFilterDropdown(
+                  hint: 'Difficulty',
+                  value: _selectedDifficulty,
+                  items: _availableDifficulties
+                      .map((d) => DropdownMenuItem<String>(
+                            value: d,
+                            child: Text(
+                              d[0].toUpperCase() + d.substring(1),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDifficulty = value;
+                      _applyFilters();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          if (_availableTags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+
+            // Tags filter
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _availableTags
+                  .take(10) // Limit to prevent overcrowding
+                  .map((tag) => FilterChip(
+                        label: Text(tag),
+                        selected: _selectedTags.contains(tag),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedTags.add(tag);
+                            } else {
+                              _selectedTags.remove(tag);
+                            }
+                            _applyFilters();
+                          });
+                        },
+                        backgroundColor: Colors.grey.shade100,
+                        selectedColor: AppColors.primary.withOpacity(0.15),
+                        checkmarkColor: AppColors.primary,
+                        labelStyle: TextStyle(
+                          fontSize: 12,
+                          color: _selectedTags.contains(tag)
+                              ? AppColors.primary
+                              : Colors.grey.shade800,
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Build filter dropdown
+  Widget _buildFilterDropdown({
+    required String hint,
+    required String? value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: DropdownButton<String>(
+        hint: Text(hint),
+        value: value,
+        items: items,
+        onChanged: onChanged,
+        isExpanded: true,
+        underline: const SizedBox(),
+        icon: Icon(
+          PhosphorIcons.caretDown(PhosphorIconsStyle.fill),
+          size: 16,
+        ),
+      ),
+    );
   }
 
   /// Build empty state when no paths exist
@@ -481,14 +762,51 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      path.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          path.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            if (path.category != null) ...[
+                              Text(
+                                path.category!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Text(
+                                ' • ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                            Text(
+                              path.difficulty[0].toUpperCase() +
+                                  path.difficulty.substring(1),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _getDifficultyColor(path.difficulty),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   if (path.isActive)
@@ -520,6 +838,35 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                 learningPath: path,
                 isCompact: true,
               ),
+              // Tags
+              if (path.tags.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: path.tags
+                        .take(3) // Limit to prevent overcrowding
+                        .map((tag) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade800,
+                                ),
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
             ],
           ),
         ),
@@ -584,24 +931,68 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          'Created: ${formatDate(path.createdAt)}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                        Row(
+                          children: [
+                            Text(
+                              formatDate(path.createdAt),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            if (path.category != null) ...[
+                              const Text(' • '),
+                              Text(
+                                path.category!,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  if (path.isActive)
-                    Chip(
-                      label: const Text('Active'),
-                      backgroundColor: AppColors.primary.withOpacity(0.2),
-                      labelStyle: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (path.isActive)
+                        Chip(
+                          label: const Text('Active'),
+                          backgroundColor: AppColors.primary.withOpacity(0.2),
+                          labelStyle: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getDifficultyColor(path.difficulty)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          path.difficulty[0].toUpperCase() +
+                              path.difficulty.substring(1),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _getDifficultyColor(path.difficulty),
+                          ),
+                        ),
                       ),
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -624,6 +1015,40 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+
+            // Tags
+            if (path.tags.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: path.tags
+                      .take(5) // Limit to prevent overcrowding
+                      .map((tag) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ))
+                      .toList(),
                 ),
               ),
 
@@ -676,5 +1101,19 @@ class _LearningPathsPageState extends State<LearningPathsPage>
         ),
       ),
     );
+  }
+
+  /// Get color for difficulty level
+  Color _getDifficultyColor(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'beginner':
+        return Colors.green;
+      case 'intermediate':
+        return Colors.orange;
+      case 'advanced':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
   }
 }

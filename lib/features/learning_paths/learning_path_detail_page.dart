@@ -522,26 +522,30 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
                 boundaryMargin: const EdgeInsets.all(100),
                 minScale: 0.1,
                 maxScale: 2.5,
-                child: GraphView(
-                  graph: graph,
-                  algorithm: BuchheimWalkerAlgorithm(
-                    builder,
-                    TreeEdgeRenderer(builder),
-                  ),
-                  paint: Paint()
-                    ..color = Colors.green
-                    ..strokeWidth = 1
-                    ..style = PaintingStyle.stroke,
-                  builder: (Node node) {
-                    // Find the corresponding module based on the node id
-                    final moduleId = node.key!.value.toString();
-                    final module = _path!.modules.firstWhere(
-                      (m) => m.id == moduleId,
-                      orElse: () => _path!.modules.first,
-                    );
+                child: Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: GraphView(
+                    graph: graph,
+                    algorithm: BuchheimWalkerAlgorithm(
+                      builder,
+                      TreeEdgeRenderer(builder),
+                    ),
+                    paint: Paint()
+                      ..color = Colors.green
+                      ..strokeWidth = 1
+                      ..style = PaintingStyle.stroke,
+                    builder: (Node node) {
+                      // Find the corresponding module based on the node id
+                      final moduleId = node.key!.value.toString();
+                      final module = _path!.modules.firstWhere(
+                        (m) => m.id == moduleId,
+                        orElse: () => _path!.modules.first,
+                      );
 
-                    return _buildModuleNode(module);
-                  },
+                      return _buildModuleNode(module);
+                    },
+                  ),
                 ),
               ),
             ),
@@ -810,6 +814,8 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
                         fontStyle: FontStyle.italic,
                       ),
                       overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      softWrap: false,
                     ),
                   ),
                 ],
@@ -841,6 +847,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
       child: Wrap(
         spacing: 12,
         runSpacing: 8,
+        alignment: WrapAlignment.start,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,

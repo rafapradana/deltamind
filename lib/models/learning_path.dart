@@ -16,6 +16,9 @@ class LearningPath {
   String? description;
   bool isActive;
   int progress;
+  List<String> tags;
+  String? category;
+  String difficulty;
   final DateTime createdAt;
   DateTime updatedAt;
   List<LearningPathModule> modules;
@@ -27,6 +30,9 @@ class LearningPath {
     this.description,
     this.isActive = false,
     this.progress = 0,
+    this.tags = const [],
+    this.category,
+    this.difficulty = 'beginner',
     DateTime? createdAt,
     DateTime? updatedAt,
     this.modules = const [],
@@ -43,6 +49,9 @@ class LearningPath {
       description: json['description'],
       isActive: json['is_active'] ?? false,
       progress: json['progress'] ?? 0,
+      tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
+      category: json['category'],
+      difficulty: json['difficulty'] ?? 'beginner',
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       modules: json['modules'] != null
@@ -61,6 +70,9 @@ class LearningPath {
       'description': description,
       'is_active': isActive,
       'progress': progress,
+      'tags': tags,
+      'category': category,
+      'difficulty': difficulty,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'modules': modules.map((x) => x.toJson()).toList(),
@@ -76,6 +88,9 @@ class LearningPath {
       'description': description,
       'is_active': isActive,
       'progress': progress,
+      'tags': tags,
+      'category': category,
+      'difficulty': difficulty,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -87,6 +102,9 @@ class LearningPath {
     String? description,
     bool? isActive,
     int? progress,
+    List<String>? tags,
+    String? category,
+    String? difficulty,
     List<LearningPathModule>? modules,
   }) {
     return LearningPath(
@@ -96,6 +114,9 @@ class LearningPath {
       description: description ?? this.description,
       isActive: isActive ?? this.isActive,
       progress: progress ?? this.progress,
+      tags: tags ?? this.tags,
+      category: category ?? this.category,
+      difficulty: difficulty ?? this.difficulty,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
       modules: modules ?? this.modules,
@@ -104,7 +125,7 @@ class LearningPath {
 
   @override
   String toString() {
-    return 'LearningPath{id: $id, title: $title, isActive: $isActive, progress: $progress%, moduleCount: ${modules.length}}';
+    return 'LearningPath{id: $id, title: $title, isActive: $isActive, progress: $progress%, category: $category, difficulty: $difficulty, tags: $tags, moduleCount: ${modules.length}}';
   }
 }
 
