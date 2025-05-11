@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:deltamind/features/learning_paths/generate_path_dialog.dart';
 import 'package:deltamind/features/learning_paths/learning_path_detail_page.dart';
 import 'package:deltamind/core/utils/formatters.dart';
+import 'package:go_router/go_router.dart';
 
 /// Learning paths list page
 class LearningPathsPage extends StatefulWidget {
@@ -56,12 +57,7 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
 
   /// Handle tapping on a learning path
   void _onPathTap(LearningPath path) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LearningPathDetailPage(pathId: path.id),
-      ),
-    ).then((_) => _loadLearningPaths()); // Refresh when returning
+    context.push('/learning-paths/${path.id}');
   }
 
   /// Show dialog to generate a new learning path
@@ -240,6 +236,25 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            if (_errorMessage != null &&
+                _errorMessage!
+                    .contains('AI service is temporarily unavailable'))
+              TextButton.icon(
+                onPressed: () {
+                  // Here you would navigate to a manual creation page
+                  // For now, we'll just show a dialog that this feature is coming soon
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('Manual learning path creation coming soon!'),
+                    ),
+                  );
+                },
+                icon:
+                    Icon(PhosphorIcons.pencilLine(PhosphorIconsStyle.regular)),
+                label: const Text('Create Path Manually'),
+              ),
           ],
         ),
       ),

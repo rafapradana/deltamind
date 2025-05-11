@@ -182,6 +182,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                             if (_activePath != null) ...[
                               _buildLearningPathCard(),
                               const SizedBox(height: 16),
+                            ] else ...[
+                              _buildLearningPathsCard(),
+                              const SizedBox(height: 16),
                             ],
 
                             // Analytics card
@@ -275,13 +278,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
               ),
             ),
             const SizedBox(height: 8),
-            ElevatedButton(
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
               onPressed: () => context.push(AppRoutes.quizList),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
+                        horizontal: 12,
                   vertical: 10,
                 ),
                 shape: RoundedRectangleBorder(
@@ -289,6 +295,30 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 ),
               ),
               child: const Text('Start a Quiz'),
+            ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(AppRoutes.learningPaths),
+                    icon: Icon(
+                      PhosphorIconsFill.roadHorizon,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    label: const Text('Learning Paths'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -323,12 +353,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LearningPathsPage(),
-          ),
-        ),
+        onTap: () => context.push('/learning-paths/${path.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,6 +519,65 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Build a card to access Learning Paths when no active path exists
+  Widget _buildLearningPathsCard() {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+      ),
+      child: InkWell(
+        onTap: () => context.push(AppRoutes.learningPaths),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  PhosphorIconsFill.roadHorizon,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Learning Paths',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    Text(
+                      'Generate AI learning paths for any topic',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                PhosphorIconsFill.arrowRight,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );

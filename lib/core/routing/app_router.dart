@@ -13,6 +13,7 @@ import 'package:deltamind/features/gamification/streak_freeze_page.dart';
 import 'package:deltamind/features/history/history_page.dart';
 import 'package:deltamind/features/history/quiz_review_detail_page.dart';
 import 'package:deltamind/features/learning_paths/learning_paths_page.dart';
+import 'package:deltamind/features/learning_paths/learning_path_detail_page.dart';
 import 'package:deltamind/features/notes/create_edit_note_page.dart';
 import 'package:deltamind/features/notes/notes_list_page.dart';
 import 'package:deltamind/features/onboarding/onboarding_page.dart';
@@ -97,6 +98,9 @@ class AppRoutes {
 
   /// Learning paths route
   static const String learningPaths = '/learning-paths';
+
+  /// Learning path detail route
+  static const String learningPathDetail = '/learning-paths/:id';
 }
 
 /// App router provider
@@ -145,25 +149,144 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.register,
         builder: (context, state) => const RegisterPage(),
       ),
-      GoRoute(
-        path: AppRoutes.dashboard,
-        builder: (context, state) => const DashboardPage(),
+
+      // Shell route for the main navigation
+      ShellRoute(
+        builder: (context, state, child) {
+          // Determine which tab is active based on the location
+          int selectedIndex = 0;
+          if (state.matchedLocation.startsWith(AppRoutes.learningPaths)) {
+            selectedIndex = 1;
+          } else if (state.matchedLocation.startsWith(AppRoutes.quizList) ||
+              state.matchedLocation.startsWith('/quiz/') ||
+              state.matchedLocation.startsWith('/quiz-review/')) {
+            selectedIndex = 2;
+          } else if (state.matchedLocation.startsWith(AppRoutes.achievements)) {
+            selectedIndex = 3;
+          }
+
+          return ScaffoldWithNavBar(
+            selectedIndex: selectedIndex,
+            child: child,
+          );
+        },
+        routes: [
+          // Dashboard
+          GoRoute(
+            path: AppRoutes.dashboard,
+            builder: (context, state) => const DashboardPage(),
+          ),
+
+          // Learning Paths
+          GoRoute(
+            path: AppRoutes.learningPaths,
+            builder: (context, state) => const LearningPathsPage(),
+          ),
+          GoRoute(
+            path: '/learning-paths/:id',
+            builder: (context, state) {
+              final pathId = state.pathParameters['id']!;
+              return LearningPathDetailPage(pathId: pathId);
+            },
+          ),
+
+          // Quizzes
+          GoRoute(
+            path: AppRoutes.quizList,
+            builder: (context, state) => const QuizListPage(),
+          ),
+          GoRoute(
+            path: '/quiz/:id',
+            builder: (context, state) {
+              final quizId = state.pathParameters['id']!;
+
+              return FutureBuilder<Quiz>(
+                future: QuizService.getQuizById(quizId),
+                builder: (context, quizSnapshot) {
+                  if (quizSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  if (quizSnapshot.hasError || !quizSnapshot.hasData) {
+                    return Scaffold(
+                      body: Center(
+                        child:
+                            Text('Error loading quiz: ${quizSnapshot.error}'),
+                      ),
+                    );
+                  }
+
+                  final quiz = quizSnapshot.data!;
+
+                  return FutureBuilder<List<Question>>(
+                    future: QuizService.getQuestionsForQuiz(quizId),
+                    builder: (context, questionsSnapshot) {
+                      if (questionsSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      if (questionsSnapshot.hasError ||
+                          !questionsSnapshot.hasData) {
+                        return Scaffold(
+                          body: Center(
+                            child: Text(
+                              'Error loading questions: ${questionsSnapshot.error}',
+                            ),
+                          ),
+                        );
+                      }
+
+                      final questions = questionsSnapshot.data!;
+
+                      if (questions.isEmpty) {
+                        return Scaffold(
+                          appBar: AppBar(title: Text(quiz.title)),
+                          body: const Center(
+                            child: Text('This quiz has no questions yet.'),
+                          ),
+                        );
+                      }
+
+                      return TakeQuizPage(
+                        quizId: quizId,
+                        quizTitle: quiz.title,
+                        questions: questions,
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+          GoRoute(
+            path: '/quiz-review/:id',
+            builder: (context, state) {
+              final attemptId = state.pathParameters['id']!;
+              return QuizReviewDetailPage(attemptId: attemptId);
+            },
+          ),
+
+          // Achievements
+          GoRoute(
+            path: AppRoutes.achievements,
+            builder: (context, state) => const AchievementsPage(),
+          ),
+        ],
       ),
+
+      // Other standalone routes
       GoRoute(
         path: AppRoutes.profile,
         builder: (context, state) => const ProfilePage(),
       ),
       GoRoute(
-        path: AppRoutes.quizList,
-        builder: (context, state) => const QuizListPage(),
-      ),
-      GoRoute(
         path: AppRoutes.createQuiz,
         builder: (context, state) => const CreateQuizPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.achievements,
-        builder: (context, state) => const AchievementsPage(),
       ),
       GoRoute(
         path: AppRoutes.analytics,
@@ -215,84 +338,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           final noteId = state.pathParameters['id']!;
           return CreateEditNotePage(noteId: noteId);
         },
-      ),
-      GoRoute(
-        path: '/quiz-review/:id',
-        builder: (context, state) {
-          final attemptId = state.pathParameters['id']!;
-          return QuizReviewDetailPage(attemptId: attemptId);
-        },
-      ),
-      GoRoute(
-        path: '/quiz/:id',
-        builder: (context, state) {
-          final quizId = state.pathParameters['id']!;
-
-          return FutureBuilder<Quiz>(
-            future: QuizService.getQuizById(quizId),
-            builder: (context, quizSnapshot) {
-              if (quizSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              if (quizSnapshot.hasError || !quizSnapshot.hasData) {
-                return Scaffold(
-                  body: Center(
-                    child: Text('Error loading quiz: ${quizSnapshot.error}'),
-                  ),
-                );
-              }
-
-              final quiz = quizSnapshot.data!;
-
-              return FutureBuilder<List<Question>>(
-                future: QuizService.getQuestionsForQuiz(quizId),
-                builder: (context, questionsSnapshot) {
-                  if (questionsSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-
-                  if (questionsSnapshot.hasError ||
-                      !questionsSnapshot.hasData) {
-                    return Scaffold(
-                      body: Center(
-                        child: Text(
-                          'Error loading questions: ${questionsSnapshot.error}',
-                        ),
-                      ),
-                    );
-                  }
-
-                  final questions = questionsSnapshot.data!;
-
-                  if (questions.isEmpty) {
-                    return Scaffold(
-                      appBar: AppBar(title: Text(quiz.title)),
-                      body: const Center(
-                        child: Text('This quiz has no questions yet.'),
-                      ),
-                    );
-                  }
-
-                  return TakeQuizPage(
-                    quizId: quizId,
-                    quizTitle: quiz.title,
-                    questions: questions,
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.learningPaths,
-        builder: (context, state) => const LearningPathsPage(),
       ),
     ],
   );

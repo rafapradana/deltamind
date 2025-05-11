@@ -11,6 +11,8 @@ import 'package:deltamind/features/flashcards/flashcard_viewer_page.dart';
 import 'package:deltamind/features/flashcards/flashcards_list_page.dart';
 import 'package:deltamind/features/gamification/achievements_page.dart';
 import 'package:deltamind/features/gamification/streak_freeze_page.dart';
+import 'package:deltamind/features/learning_paths/learning_paths_page.dart';
+import 'package:deltamind/features/learning_paths/learning_path_detail_page.dart';
 import 'package:deltamind/features/navigation/scaffold_with_nav_bar.dart';
 import 'package:deltamind/features/notes/notes_list_page.dart';
 import 'package:deltamind/features/notes/create_edit_note_page.dart';
@@ -187,6 +189,17 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.profile,
             builder: (context, state) => const ProfilePage(),
+          ),
+          GoRoute(
+            path: AppRoutes.learningPaths,
+            builder: (context, state) => const LearningPathsPage(),
+          ),
+          GoRoute(
+            path: '/learning-paths/:id',
+            builder: (context, state) {
+              final pathId = state.pathParameters['id']!;
+              return LearningPathDetailPage(pathId: pathId);
+            },
           ),
           GoRoute(
             path: AppRoutes.quizList,

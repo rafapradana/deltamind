@@ -243,66 +243,83 @@ class LearningPathService {
     try {
       SupabaseService.checkAuthentication();
 
-      // Create the prompt for Gemini
+      // Create the improved prompt for Gemini
       final prompt = '''
-Generate a comprehensive learning path for the topic '$topic'. The learning path should contain 5–10 modules, each with the following information:
+Generate a visually structured learning path for the topic '$topic'. This will be displayed in a node-based graph visualization, with dependencies between modules shown as connecting lines.
 
-1. **Module Title**: A concise title describing the module.
-2. **Module Description**: A detailed description of the module's content, objectives, and the skills or knowledge the learner will gain.
-3. **Prerequisites**: List of any prior knowledge or skills required for this module (optional but recommended).
-4. **Dependencies**: For each module, specify any modules that need to be completed first (e.g., a module might depend on completion of 'Module 1' before proceeding).
-5. **Learning Resources**: Provide recommendations for resources like articles, books, videos, or tools relevant to the module's content. Include URLs if applicable.
-6. **Learning Objectives**: Clear, measurable goals that learners should achieve upon completion of the module. For example, "Understand the basics of X" or "Be able to implement Y using Z."
-7. **Estimated Duration**: Estimate how long it might take to complete the module (e.g., '2 hours', '1 day').
-8. **Assessment/Checkpoint**: Describe the type of assessment or checkpoint that should be included at the end of the module (e.g., quiz, project, or practical exercise).
-9. **Additional Notes**: Any extra information that may be relevant, such as advanced tips, challenges, or optional deep dives into specific subtopics.
+Please create 5-8 modules that follow a logical progression from beginner to advanced, with consideration for:
+
+1. **Module Sequencing**: Ensure a clear progression from fundamentals to advanced concepts. Each module should build on previous modules when appropriate.
+
+2. **Visual Structure**: Consider how modules will look when displayed in a graph. Create a balanced structure that flows well visually.
+
+3. **Dependencies**: Explicitly define which modules depend on other modules. This creates the connecting lines in the graph view.
+
+4. **Coherent Styling**: Use consistent formatting and naming conventions throughout.
+
+Each module should include:
+- **Module Title**: Clear, concise title (3-5 words)
+- **Module Description**: Detailed description (2-3 sentences)
+- **Prerequisites**: Required prior knowledge
+- **Dependencies**: Numerical IDs of modules that must be completed first (empty array if this is a starting module)
+- **Resources**: Recommended learning resources (2-4 items with URLs if available)
+- **Learning Objectives**: 2-4 concrete, measurable objectives
+- **Estimated Duration**: Time to complete (e.g., "2 hours", "1 week")
+- **Assessment**: Suggested method to verify learning
+- **Additional Notes**: Optional tips or advanced concepts
 
 **Output Format:**
-
-Return the response as a structured JSON with the following structure:
+Return a JSON object with this structure:
 
 {
-  "title": "[Learning Path Title]",
-  "description": "[Learning Path Brief Description]",
+  "title": "Learning Path: [Topic]",
+  "description": "A comprehensive learning path to master [Topic], from beginner to advanced concepts.",
   "modules": [
     {
       "module_id": "1",
-      "title": "[Module 1 Title]",
-      "description": "[Module 1 Description]",
-      "prerequisites": "[Any prerequisites]",
-      "dependencies": "[Module(s) that must be completed first]",
+      "title": "Module Title",
+      "description": "Detailed description of this module.",
+      "prerequisites": "Any prerequisites",
+      "dependencies": [],
       "resources": [
-        "[Resource 1 URL]",
-        "[Resource 2 URL]"
+        "Resource 1: https://example.com",
+        "Resource 2: https://example.com"
       ],
       "learning_objectives": [
-        "[Objective 1]",
-        "[Objective 2]"
+        "Objective 1",
+        "Objective 2"
       ],
-      "estimated_duration": "[Estimated Duration]",
-      "assessment": "[Type of Assessment]",
-      "additional_notes": "[Any extra notes]"
+      "estimated_duration": "X hours/days",
+      "assessment": "Quiz, project, etc.",
+      "additional_notes": "Optional additional information"
     },
     {
       "module_id": "2",
-      "title": "[Module 2 Title]",
-      "description": "[Module 2 Description]",
-      "prerequisites": "[Any prerequisites]",
-      "dependencies": "[Module(s) that must be completed first]",
+      "title": "Module Title",
+      "description": "Detailed description of this module.",
+      "prerequisites": "Any prerequisites",
+      "dependencies": ["1"],
       "resources": [
-        "[Resource 1 URL]",
-        "[Resource 2 URL]"
+        "Resource 1: https://example.com",
+        "Resource 2: https://example.com"
       ],
       "learning_objectives": [
-        "[Objective 1]",
-        "[Objective 2]"
+        "Objective 1",
+        "Objective 2"
       ],
-      "estimated_duration": "[Estimated Duration]",
-      "assessment": "[Type of Assessment]",
-      "additional_notes": "[Any extra notes]"
+      "estimated_duration": "X hours/days",
+      "assessment": "Quiz, project, etc.",
+      "additional_notes": "Optional additional information"
     }
+    // Additional modules...
   ]
 }
+
+IMPORTANT:
+- For dependencies, use the exact module_id values (as strings)
+- Ensure all modules connect to at least one other module (except the first one)
+- For advanced topics, consider creating branching paths (where multiple advanced modules depend on a core module)
+- Maintain a logical learning progression
 ''';
 
       // Send to Gemini
@@ -351,6 +368,7 @@ Return the response as a structured JSON with the following structure:
         final result = jsonDecode(processedResult);
         return result;
       } catch (e) {
+        debugPrint('JSON parsing error: $e');
         // If we can't parse it, attempt to extract JSON
         final firstBrace = generatedText.indexOf('{');
         final lastBrace = generatedText.lastIndexOf('}');
@@ -360,17 +378,99 @@ Return the response as a structured JSON with the following structure:
 
           try {
             return jsonDecode(processedResult);
-          } catch (e) {
-            throw Exception('Failed to parse AI response: $e');
+          } catch (jsonError) {
+            debugPrint('Second JSON parsing attempt failed: $jsonError');
+
+            // Fallback: Generate a basic learning path structure as a last resort
+            final fallbackPath = _createFallbackPath(topic);
+            return fallbackPath;
           }
         } else {
-          throw Exception('Failed to extract valid JSON from response');
+          // If we can't extract JSON either, return a fallback
+          debugPrint('Could not extract JSON structure, using fallback path');
+          return _createFallbackPath(topic);
         }
       }
     } catch (e) {
       debugPrint('Error generating learning path: $e');
+      // Check for service unavailability (503) error
+      if (e.toString().contains('503') ||
+          e.toString().contains('UNAVAILABLE')) {
+        throw Exception(
+            'Gemini AI service is currently unavailable. Please try again later.');
+      }
       rethrow;
     }
+  }
+
+  /// Create a fallback learning path when AI generation fails
+  static Map<String, dynamic> _createFallbackPath(String topic) {
+    final capitalizedTopic = topic[0].toUpperCase() + topic.substring(1);
+
+    return {
+      "title": "Learning Path: $capitalizedTopic",
+      "description": "A comprehensive learning path for $topic.",
+      "is_fallback": true,
+      "modules": [
+        {
+          "module_id": "1",
+          "title": "Introduction to $capitalizedTopic",
+          "description": "Learn the fundamentals and core concepts of $topic.",
+          "prerequisites": "No prior knowledge required",
+          "dependencies": [],
+          "resources": [
+            "Search for '$topic fundamentals' on YouTube",
+            "Look for beginner guides on $topic online"
+          ],
+          "learning_objectives": [
+            "Understand basic terminology related to $topic",
+            "Identify the key components and concepts of $topic"
+          ],
+          "estimated_duration": "1 week",
+          "assessment": "Create a concept map of $topic fundamentals",
+          "additional_notes": "Created as fallback due to AI generation error"
+        },
+        {
+          "module_id": "2",
+          "title": "Core $capitalizedTopic Skills",
+          "description":
+              "Develop the essential skills needed for $topic mastery.",
+          "prerequisites": "Basic understanding of $topic",
+          "dependencies": ["1"],
+          "resources": [
+            "Practice exercises for $topic skills",
+            "Intermediate tutorials on $topic"
+          ],
+          "learning_objectives": [
+            "Apply basic $topic techniques to simple problems",
+            "Develop proficiency in core $topic methods"
+          ],
+          "estimated_duration": "2 weeks",
+          "assessment": "Complete practice exercises",
+          "additional_notes": "Focus on practical application"
+        },
+        {
+          "module_id": "3",
+          "title": "Advanced $capitalizedTopic",
+          "description":
+              "Explore advanced topics and specialized areas within $topic.",
+          "prerequisites": "Core skills in $topic",
+          "dependencies": ["2"],
+          "resources": [
+            "Advanced online courses on $topic",
+            "Research papers and articles on $topic"
+          ],
+          "learning_objectives": [
+            "Apply advanced techniques to complex problems",
+            "Analyze and evaluate $topic approaches"
+          ],
+          "estimated_duration": "3 weeks",
+          "assessment": "Create a capstone project",
+          "additional_notes":
+              "Customize this module based on your specific interests in $topic"
+        }
+      ]
+    };
   }
 
   /// Create a learning path from Gemini-generated data

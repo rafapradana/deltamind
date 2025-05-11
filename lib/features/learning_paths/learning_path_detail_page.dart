@@ -4,8 +4,9 @@ import 'package:deltamind/models/learning_path.dart';
 import 'package:deltamind/services/learning_path_service.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:graphview/graphview.dart';
 
-/// Learning path detail page with node graph
+/// Learning path detail page with node graph visualization
 class LearningPathDetailPage extends StatefulWidget {
   final String pathId;
 
@@ -18,16 +19,39 @@ class LearningPathDetailPage extends StatefulWidget {
   State<LearningPathDetailPage> createState() => _LearningPathDetailPageState();
 }
 
-class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
+class _LearningPathDetailPageState extends State<LearningPathDetailPage>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   LearningPath? _path;
   String? _errorMessage;
   LearningPathModule? _selectedModule;
+  final Graph graph = Graph()..isTree = true;
+  BuchheimWalkerConfiguration builder = BuchheimWalkerConfiguration();
+
+  // Tab controller for mobile view
+  late TabController _tabController;
+
+  // For detecting mobile view
+  bool get _isMobileView => MediaQuery.of(context).size.width < 800;
 
   @override
   void initState() {
     super.initState();
     _loadLearningPath();
+    _tabController = TabController(length: 2, vsync: this);
+
+    // Configure the graph layout
+    builder
+      ..siblingSeparation = 100
+      ..levelSeparation = 150
+      ..subtreeSeparation = 150
+      ..orientation = BuchheimWalkerConfiguration.ORIENTATION_TOP_BOTTOM;
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   /// Load learning path details
@@ -43,6 +67,8 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
 
       if (!mounted) return;
 
+      _buildGraph(path);
+
       setState(() {
         _path = path;
         _isLoading = false;
@@ -55,6 +81,94 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
         });
       }
     }
+  }
+
+  /// Build the graph from the learning path modules
+  void _buildGraph(LearningPath path) {
+    graph.nodes.clear();
+    graph.edges.clear();
+
+    // Create a map from moduleId to module for easy dependency lookup
+    final Map<String, Node> moduleNodes = {};
+
+    // First pass: create nodes for all modules
+    for (var module in path.modules) {
+      final node = Node.Id(module.id);
+      moduleNodes[module.id] = node;
+    }
+
+    // Second pass: create edges based on dependencies
+    for (var module in path.modules) {
+      // If no dependencies, connect to previous module by position
+      if (module.dependencies.isEmpty) {
+        // Connect sequential modules if they're not the first one
+        if (module.position > 0) {
+          final prevModule = path.modules.firstWhere(
+              (m) => m.position == module.position - 1,
+              orElse: () => path.modules.first);
+
+          if (moduleNodes.containsKey(prevModule.id)) {
+            _addEdgeWithStyle(moduleNodes[prevModule.id]!,
+                moduleNodes[module.id]!, prevModule.status);
+          }
+        }
+      } else {
+        // Connect to all dependencies
+        for (var depId in module.dependencies) {
+          // Find the module with moduleId that matches the dependency
+          final depModule = path.modules.firstWhere((m) => m.moduleId == depId,
+              orElse: () => path.modules.first);
+
+          if (moduleNodes.containsKey(depModule.id)) {
+            _addEdgeWithStyle(moduleNodes[depModule.id]!,
+                moduleNodes[module.id]!, depModule.status);
+          }
+        }
+      }
+    }
+
+    // If no edges were created, create a default chain from the first module
+    if (graph.edges.isEmpty && path.modules.isNotEmpty) {
+      for (int i = 0; i < path.modules.length - 1; i++) {
+        final currentModule = path.modules[i];
+        final nextModule = path.modules[i + 1];
+
+        if (moduleNodes.containsKey(currentModule.id) &&
+            moduleNodes.containsKey(nextModule.id)) {
+          _addEdgeWithStyle(moduleNodes[currentModule.id]!,
+              moduleNodes[nextModule.id]!, currentModule.status);
+        }
+      }
+    }
+  }
+
+  /// Add an edge with appropriate styling based on module status
+  void _addEdgeWithStyle(Node from, Node to, ModuleStatus status) {
+    Paint edgePaint;
+
+    switch (status) {
+      case ModuleStatus.done:
+        edgePaint = Paint()
+          ..color = Colors.green
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
+        break;
+      case ModuleStatus.inProgress:
+        edgePaint = Paint()
+          ..color = AppColors.primary
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
+        break;
+      case ModuleStatus.locked:
+      default:
+        edgePaint = Paint()
+          ..color = Colors.grey.shade400
+          ..strokeWidth = 1.5
+          ..style = PaintingStyle.stroke;
+        break;
+    }
+
+    graph.addEdge(from, to, paint: edgePaint);
   }
 
   /// Update a module's status
@@ -83,6 +197,9 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
           _selectedModule = updatedModule;
           _isLoading = false;
         });
+
+        // Rebuild the graph to update edge styles
+        _buildGraph(_path!);
       } else {
         // If module isn't found, refresh the entire path
         await _loadLearningPath();
@@ -109,6 +226,15 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
             tooltip: 'Refresh',
           ),
         ],
+        bottom: _isMobileView
+            ? TabBar(
+                controller: _tabController,
+                tabs: [
+                  Tab(text: 'Overview'),
+                  Tab(text: 'Module Graph'),
+                ],
+              )
+            : null,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -151,6 +277,30 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
       return const Center(child: Text('Path not found'));
     }
 
+    // Mobile view uses TabBarView
+    if (_isMobileView) {
+      return Column(
+        children: [
+          _buildPathHeader(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Overview tab (modules list)
+                _selectedModule == null
+                    ? _buildPathOverview()
+                    : _buildModuleDetail(),
+
+                // Module Graph tab
+                _buildModuleGraph(),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Desktop view uses Row layout
     return Column(
       children: [
         _buildPathHeader(),
@@ -158,7 +308,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Module list (2/3 of screen)
+              // Graph visualization (2/3 of screen)
               Expanded(
                 flex: 2,
                 child: _buildModuleGraph(),
@@ -181,7 +331,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
   /// Build path header with title and progress
   Widget _buildPathHeader() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Reduced padding
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -195,14 +345,15 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Title row with active badge and star icon
           Row(
             children: [
               if (_path!.isActive)
                 Container(
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 6,
+                    vertical: 2,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
@@ -211,7 +362,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
                   child: Text(
                     'Active Path',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 10, // Smaller font
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
                     ),
@@ -220,7 +371,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
               Expanded(
                 child: Text(
                   _path!.title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                   maxLines: 1,
@@ -233,6 +384,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
                       ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
                       : PhosphorIcons.star(PhosphorIconsStyle.fill),
                   color: _path!.isActive ? Colors.green : null,
+                  size: 20, // Smaller icon
                 ),
                 onPressed: _path!.isActive
                     ? null
@@ -243,52 +395,67 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
                         _loadLearningPath();
                       },
                 tooltip: _path!.isActive ? 'Active Path' : 'Set as Active Path',
+                padding: EdgeInsets.zero, // Reduce padding on the icon button
+                visualDensity:
+                    VisualDensity.compact, // Make the button more compact
               ),
             ],
           ),
           const SizedBox(height: 8),
+
+          // Compact progress section
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Progress indicator with percentage
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
                         Text(
                           'Progress: ',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                         Text(
                           '${_path!.progress}%',
                           style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.primary,
+                                  ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Created date
+                        Text(
+                          formatDate(_path!.createdAt),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 10,
                                   ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: _path!.progress / 100,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _path!.progress >= 100
-                            ? Colors.green
-                            : AppColors.primary,
+                    // Progress bar with full width
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _path!.progress / 100,
+                        minHeight: 4, // Make the bar thinner
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _path!.progress >= 100
+                              ? Colors.green
+                              : AppColors.primary,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(2),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                'Created: ${formatDate(_path!.createdAt)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
               ),
             ],
           ),
@@ -297,51 +464,106 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
     );
   }
 
-  /// Build a module flow visualization
+  /// Build a module graph visualization
   Widget _buildModuleGraph() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 8, vertical: 8), // Reduced padding
       child: Card(
-        elevation: 2,
+        elevation: 1, // Reduced elevation
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         child: Container(
+          padding: const EdgeInsets.all(12), // Reduced padding
           color: Colors.grey.shade50,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      PhosphorIcons.roadHorizon(PhosphorIconsStyle.fill),
-                      color: AppColors.primary,
+              // Header row with controls
+              Row(
+                children: [
+                  Icon(
+                    PhosphorIcons.graph(PhosphorIconsStyle.fill),
+                    color: AppColors.primary,
+                    size: 18, // Smaller icon
+                  ),
+                  const SizedBox(width: 6), // Reduced spacing
+                  Text(
+                    'Learning Path Graph',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const Spacer(),
+                  if (_isMobileView)
+                    IconButton(
+                      icon: Icon(
+                        _selectedModule == null
+                            ? PhosphorIcons.listPlus(PhosphorIconsStyle.fill)
+                            : PhosphorIcons.arrowSquareOut(
+                                PhosphorIconsStyle.fill),
+                        size: 20, // Smaller icon
+                      ),
+                      onPressed: () {
+                        _tabController
+                            .animateTo(0); // Always go to overview tab
+                      },
+                      tooltip: _selectedModule == null
+                          ? 'Show Modules'
+                          : 'View Module',
+                      padding: EdgeInsets.zero, // Remove padding
+                      visualDensity: VisualDensity.compact,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Learning Module Flow',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _path!.modules.length,
-                  itemBuilder: (context, index) {
-                    final module = _path!.modules[index];
-                    final bool isSelected = _selectedModule != null &&
-                        _selectedModule!.id == module.id;
+              const Divider(height: 16), // Reduced height
 
-                    return _buildModuleNode(module, index, isSelected);
-                  },
+              // Module selection dropdown for mobile
+              if (_isMobileView) ...[
+                _buildMobileModuleSelector(),
+                const SizedBox(height: 8), // Reduced spacing
+              ],
+
+              // Graph visualization
+              Expanded(
+                child: InteractiveViewer(
+                  constrained: false,
+                  boundaryMargin:
+                      EdgeInsets.all(_isMobileView ? 30 : 20), // Reduced margin
+                  minScale: 0.1,
+                  maxScale: 2.5,
+                  child: GraphView(
+                    graph: graph,
+                    algorithm: BuchheimWalkerAlgorithm(
+                      builder
+                        ..siblingSeparation =
+                            _isMobileView ? 80 : 100, // Adjust for mobile
+                      TreeEdgeRenderer(builder),
+                    ),
+                    paint: Paint()
+                      ..color = Colors.green
+                      ..strokeWidth = 1
+                      ..style = PaintingStyle.stroke,
+                    builder: (Node node) {
+                      // Find the corresponding module based on the node id
+                      final moduleId = node.key!.value.toString();
+                      final module = _path!.modules.firstWhere(
+                        (m) => m.id == moduleId,
+                        orElse: () => _path!.modules.first,
+                      );
+
+                      return _buildModuleNode(module);
+                    },
+                  ),
                 ),
               ),
+
+              // Legend for graph
+              if (_isMobileView) ...[
+                const SizedBox(height: 8), // Reduced spacing
+                _buildGraphLegend(),
+              ],
             ],
           ),
         ),
@@ -349,14 +571,66 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
     );
   }
 
-  /// Build a module node
-  Widget _buildModuleNode(
-      LearningPathModule module, int index, bool isSelected) {
+  /// Build module selector for mobile view - more compact
+  Widget _buildMobileModuleSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          vertical: 6, horizontal: 10), // Reduced padding
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          icon: Icon(
+            PhosphorIcons.caretDown(PhosphorIconsStyle.fill),
+            size: 16, // Smaller icon
+          ),
+          hint: Text(
+            'Select a module',
+            style: TextStyle(fontSize: 12), // Smaller font
+          ),
+          value: _selectedModule?.id,
+          items: _path!.modules.map((module) {
+            return DropdownMenuItem<String>(
+              value: module.id,
+              child: Text(
+                '${module.moduleId}: ${module.title}',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(fontSize: 12), // Smaller font
+              ),
+            );
+          }).toList(),
+          onChanged: (moduleId) {
+            if (moduleId != null) {
+              final module = _path!.modules.firstWhere((m) => m.id == moduleId);
+              setState(() => _selectedModule = module);
+
+              // Switch to overview tab to show the selected module
+              if (_isMobileView) {
+                _tabController.animateTo(0);
+              }
+            }
+          },
+          isDense: true, // Make dropdown more compact
+        ),
+      ),
+    );
+  }
+
+  /// Build a module node for the graph - more compact
+  Widget _buildModuleNode(LearningPathModule module) {
     Color bgColor;
     Color borderColor;
     Color textColor;
     IconData iconData;
+    bool isSelected =
+        _selectedModule != null && _selectedModule!.id == module.id;
 
+    // Determine colors based on status
     switch (module.status) {
       case ModuleStatus.done:
         bgColor = Colors.green.withOpacity(0.1);
@@ -383,87 +657,159 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
       borderColor = Colors.blue;
     }
 
-    // Show connector line between modules
-    return Column(
-      children: [
-        // Show connector line except for the first module
-        if (index > 0)
-          Container(
-            height: 30,
-            width: 2,
-            color: _path!.modules[index - 1].status == ModuleStatus.done
-                ? Colors.green
-                : Colors.grey.shade300,
-          ),
+    // Module card - more compact
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedModule = module;
+        });
 
-        // Module card
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedModule = module;
-            });
-          },
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: borderColor,
-                width: isSelected ? 2.0 : 1.0,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: Colors.blue.withOpacity(0.3),
-                        blurRadius: 4,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // Switch to overview tab on mobile
+        if (_isMobileView) {
+          _tabController.animateTo(0);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.all(2), // Reduced margin
+        padding: const EdgeInsets.all(8), // Reduced padding
+        constraints: BoxConstraints(
+          maxWidth: _isMobileView ? 100 : 150, // Limit width based on device
+        ),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(6), // Smaller radius
+          border: Border.all(
+            color: borderColor,
+            width: isSelected ? 2.0 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 3,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.15),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Icon(iconData, color: textColor, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Module ${module.moduleId}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: textColor,
-                        ),
-                      ),
+                Icon(iconData, color: textColor, size: 12), // Smaller icon
+                const SizedBox(width: 4), // Reduced spacing
+                Expanded(
+                  child: Text(
+                    'Module ${module.moduleId}',
+                    style: TextStyle(
+                      fontSize: 10, // Smaller font
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  module.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  module.description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: textColor.withOpacity(0.8),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 4), // Reduced spacing
+            Text(
+              module.title,
+              style: TextStyle(
+                fontSize: 11, // Smaller font
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (module.estimatedDuration != null) ...[
+              const SizedBox(height: 2), // Reduced spacing
+              Row(
+                children: [
+                  Icon(
+                    PhosphorIcons.clock(PhosphorIconsStyle.fill),
+                    size: 10, // Smaller icon
+                    color: textColor.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 2), // Reduced spacing
+                  Expanded(
+                    child: Text(
+                      module.estimatedDuration!,
+                      style: TextStyle(
+                        fontSize: 9, // Smaller font
+                        color: textColor.withOpacity(0.7),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build legend for graph symbols - more compact
+  Widget _buildGraphLegend() {
+    return Wrap(
+      spacing: 8, // Reduce spacing
+      runSpacing: 4, // Reduce spacing
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                color: Colors.green, size: 12), // Smaller icon
+            const SizedBox(width: 2), // Reduced spacing
+            Text(
+              'Completed',
+              style: TextStyle(
+                fontSize: 10, // Smaller font
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.fill),
+                color: AppColors.primary, size: 12), // Smaller icon
+            const SizedBox(width: 2), // Reduced spacing
+            Text(
+              'In Progress',
+              style: TextStyle(
+                fontSize: 10, // Smaller font
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(PhosphorIcons.lock(PhosphorIconsStyle.fill),
+                color: Colors.grey.shade600, size: 12), // Smaller icon
+            const SizedBox(width: 2), // Reduced spacing
+            Text(
+              'Locked',
+              style: TextStyle(
+                fontSize: 10, // Smaller font
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -472,20 +818,29 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
   /// Build the path overview (when no module is selected)
   Widget _buildPathOverview() {
     return Card(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            'Path Overview',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+          Row(
+            children: [
+              Icon(
+                PhosphorIcons.list(PhosphorIconsStyle.fill),
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Path Overview',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (_path!.description != null && _path!.description!.isNotEmpty) ...[
             Text(
               _path!.description!,
@@ -493,15 +848,34 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
             ),
             const SizedBox(height: 16),
             const Divider(),
+            const SizedBox(height: 16),
           ],
-          const SizedBox(height: 16),
-          Text(
-            'Modules',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+
+          // Module count and filter options
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Modules (${_path!.modules.length})',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              if (_isMobileView)
+                IconButton(
+                  icon: Icon(PhosphorIcons.graph(PhosphorIconsStyle.fill)),
+                  onPressed: () => _tabController.animateTo(1),
+                  tooltip: 'Show Graph View',
                 ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+
+          // Module status stats
+          _buildModuleStats(),
+          const SizedBox(height: 16),
+
+          // Module list
           ...List.generate(
             _path!.modules.length,
             (index) {
@@ -514,190 +888,103 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
     );
   }
 
-  /// Build the module detail panel
-  Widget _buildModuleDetail() {
-    if (_selectedModule == null) return Container();
+  /// Build module stats section - fix ParentDataWidget errors
+  Widget _buildModuleStats() {
+    final totalModules = _path!.modules.length;
+    final completedModules =
+        _path!.modules.where((m) => m.status == ModuleStatus.done).length;
+    final inProgressModules =
+        _path!.modules.where((m) => m.status == ModuleStatus.inProgress).length;
+    final lockedModules =
+        _path!.modules.where((m) => m.status == ModuleStatus.locked).length;
 
-    final module = _selectedModule!;
-
-    return Card(
-      margin: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      padding: const EdgeInsets.all(8), // Reduced padding
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem(
+            count: completedModules,
+            total: totalModules,
+            label: 'Completed',
+            color: Colors.green,
+            icon: PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+          ),
+          _buildStatDivider(),
+          _buildStatItem(
+            count: inProgressModules,
+            total: totalModules,
+            label: 'In Progress',
+            color: AppColors.primary,
+            icon: PhosphorIcons.caretRight(PhosphorIconsStyle.fill),
+          ),
+          _buildStatDivider(),
+          _buildStatItem(
+            count: lockedModules,
+            total: totalModules,
+            label: 'Locked',
+            color: Colors.grey.shade600,
+            icon: PhosphorIcons.lock(PhosphorIconsStyle.fill),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build a stat item without Expanded to fix ParentDataWidget error
+  Widget _buildStatItem({
+    required int count,
+    required int total,
+    required String label,
+    required Color color,
+    required PhosphorIconData icon,
+  }) {
+    final percentage = total > 0 ? (count / total * 100).round() : 0;
+
+    // Using Container instead of Expanded to fix ParentDataWidget error
+    return Container(
+      width: 70, // Fixed width for consistent sizing
+      child: Column(
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: Text(
-                  'Module ${module.moduleId}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+              Icon(icon, color: color, size: 14), // Smaller icon
+              const SizedBox(width: 4),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  fontSize: 12, // Smaller font
                 ),
-              ),
-              IconButton(
-                icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.fill)),
-                onPressed: () => setState(() => _selectedModule = null),
-                tooltip: 'Close',
               ),
             ],
           ),
-          const SizedBox(height: 4),
           Text(
-            module.title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+            label,
+            style: TextStyle(
+              fontSize: 10, // Smaller font
+              color: Colors.grey.shade600,
+            ),
           ),
-          const SizedBox(height: 16),
-          _buildStatusSelector(module),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-
-          // Description
-          Text(
-            'Description',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            module.description,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-
-          // Learning objectives
-          if (module.learningObjectives.isNotEmpty) ...[
-            Text(
-              'Learning Objectives',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            ...module.learningObjectives.map((objective) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      PhosphorIcons.caretRight(PhosphorIconsStyle.fill),
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(objective),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-            const SizedBox(height: 16),
-          ],
-
-          // Resources
-          if (module.resources.isNotEmpty) ...[
-            Text(
-              'Resources',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            ...module.resources.map((resource) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      PhosphorIcons.link(PhosphorIconsStyle.fill),
-                      size: 16,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        resource,
-                        style: TextStyle(
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-            const SizedBox(height: 16),
-          ],
-
-          // Estimated duration
-          if (module.estimatedDuration != null) ...[
-            Row(
-              children: [
-                Icon(
-                  PhosphorIcons.clock(PhosphorIconsStyle.fill),
-                  size: 16,
-                  color: Colors.grey.shade700,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Estimated time: ${module.estimatedDuration}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          // Assessment
-          if (module.assessment != null) ...[
-            Text(
-              'Assessment',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(module.assessment!),
-            const SizedBox(height: 16),
-          ],
-
-          // Additional notes
-          if (module.additionalNotes != null) ...[
-            Text(
-              'Additional Notes',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.grey.shade300,
-                ),
-              ),
-              child: Text(module.additionalNotes!),
-            ),
-            const SizedBox(height: 16),
-          ],
         ],
       ),
+    );
+  }
+
+  /// Build a stat divider
+  Widget _buildStatDivider() {
+    return Container(
+      height: 30,
+      width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: Colors.grey.shade300,
     );
   }
 
@@ -723,7 +1010,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
       color: color.withOpacity(0.05),
       shape: RoundedRectangleBorder(
@@ -769,6 +1056,16 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
                         color: color,
                       ),
                     ),
+                    if (module.estimatedDuration != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        module.estimatedDuration!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: color.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -784,93 +1081,516 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage> {
     );
   }
 
-  /// Build module status selector
-  Widget _buildStatusSelector(LearningPathModule module) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Status:',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+  /// Build the module detail panel
+  Widget _buildModuleDetail() {
+    if (_selectedModule == null) return Container();
+
+    final module = _selectedModule!;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(
+          horizontal: 8, vertical: 12), // Reduced margin
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 1, // Reduced elevation
+      child: ListView(
+        padding: const EdgeInsets.all(12), // Reduced padding
+        children: [
+          // Header with close button and module info
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Module ${module.moduleId}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 2), // Reduced spacing
+                    Text(
+                      module.title,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                  ],
                 ),
+              ),
+              if (!_isMobileView)
+                IconButton(
+                  icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.fill)),
+                  onPressed: () => setState(() => _selectedModule = null),
+                  tooltip: 'Close',
+                  padding: EdgeInsets.zero, // Remove padding
+                  visualDensity: VisualDensity.compact, // Make button compact
+                ),
+            ],
+          ),
+
+          // Mobile navigation buttons
+          if (_isMobileView) ...[
+            const SizedBox(height: 12), // Reduced spacing
+            _buildModuleNavigationButtons(module),
+            // No additional space needed here
+          ],
+
+          const SizedBox(height: 12), // Reduced spacing
+          _buildStatusSelector(module),
+          const SizedBox(height: 12), // Reduced spacing
+          const Divider(height: 1), // Make divider thinner
+          const SizedBox(height: 12), // Reduced spacing
+
+          // Description
+          _buildSectionHeader('Description'),
+          const SizedBox(height: 6), // Reduced spacing
+          Text(
+            module.description,
+            style: Theme.of(context).textTheme.bodySmall, // Smaller text
+          ),
+          const SizedBox(height: 12), // Reduced spacing
+
+          // Dependencies
+          if (module.dependencies.isNotEmpty) ...[
+            _buildSectionHeader('Dependencies'),
+            const SizedBox(height: 6), // Reduced spacing
+            Wrap(
+              spacing: 6, // Reduced spacing
+              runSpacing: 6, // Reduced spacing
+              children: module.dependencies.map((dep) {
+                // Find the module with this ID
+                final depModule = _path!.modules.firstWhere(
+                  (m) => m.moduleId == dep,
+                  orElse: () => module,
+                );
+
+                return ActionChip(
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  label: Text(
+                    'Module $dep',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 11, // Smaller font
+                    ),
+                  ),
+                  avatar: Icon(
+                    PhosphorIcons.arrowRight(PhosphorIconsStyle.fill),
+                    color: AppColors.primary,
+                    size: 14, // Smaller icon
+                  ),
+                  padding: EdgeInsets.zero, // Reduce padding
+                  visualDensity: VisualDensity.compact, // Make chip compact
+                  onPressed: () {
+                    setState(() {
+                      _selectedModule = depModule;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12), // Reduced spacing
+          ],
+
+          // Learning objectives
+          if (module.learningObjectives.isNotEmpty) ...[
+            _buildSectionHeader('Learning Objectives'),
+            const SizedBox(height: 6), // Reduced spacing
+            ...module.learningObjectives.map((objective) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6), // Reduced spacing
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      PhosphorIcons.caretRight(PhosphorIconsStyle.fill),
+                      size: 14, // Smaller icon
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8), // Reduced spacing
+                    Expanded(
+                      child: Text(
+                        objective,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall, // Smaller font
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            const SizedBox(height: 12), // Reduced spacing
+          ],
+
+          // Resources
+          if (module.resources.isNotEmpty) ...[
+            _buildSectionHeader('Resources'),
+            const SizedBox(height: 6), // Reduced spacing
+            ...module.resources.map((resource) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6), // Reduced spacing
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      PhosphorIcons.link(PhosphorIconsStyle.fill),
+                      size: 14, // Smaller icon
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(width: 8), // Reduced spacing
+                    Expanded(
+                      child: Text(
+                        resource,
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                          fontSize: 12, // Smaller font
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            const SizedBox(height: 12), // Reduced spacing
+          ],
+
+          // Linked content
+          if (module.noteId != null ||
+              module.quizId != null ||
+              module.deckId != null) ...[
+            _buildSectionHeader('Linked Content'),
+            const SizedBox(height: 6), // Reduced spacing
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  if (module.noteId != null)
+                    SizedBox(
+                      height: 32, // Fixed height for consistent sizing
+                      child: ElevatedButton.icon(
+                        icon: Icon(
+                          PhosphorIcons.notepad(PhosphorIconsStyle.fill),
+                          size: 16, // Smaller icon
+                        ),
+                        label: Text(
+                          'View Note',
+                          style: TextStyle(fontSize: 11), // Smaller font
+                        ),
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/notes/${module.noteId}',
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 0), // Reduced padding
+                        ),
+                      ),
+                    ),
+                  if (module.noteId != null &&
+                      (module.quizId != null || module.deckId != null))
+                    const SizedBox(width: 8),
+                  if (module.quizId != null)
+                    SizedBox(
+                      height: 32, // Fixed height for consistent sizing
+                      child: ElevatedButton.icon(
+                        icon: Icon(
+                          PhosphorIcons.exam(PhosphorIconsStyle.fill),
+                          size: 16, // Smaller icon
+                        ),
+                        label: Text(
+                          'Take Quiz',
+                          style: TextStyle(fontSize: 11), // Smaller font
+                        ),
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/quiz/${module.quizId}',
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 0), // Reduced padding
+                        ),
+                      ),
+                    ),
+                  if (module.quizId != null && module.deckId != null)
+                    const SizedBox(width: 8),
+                  if (module.deckId != null)
+                    SizedBox(
+                      height: 32, // Fixed height for consistent sizing
+                      child: ElevatedButton.icon(
+                        icon: Icon(
+                          PhosphorIcons.cards(PhosphorIconsStyle.fill),
+                          size: 16, // Smaller icon
+                        ),
+                        label: Text(
+                          'Study Cards',
+                          style: TextStyle(fontSize: 11), // Smaller font
+                        ),
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/flashcards/${module.deckId}/view',
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 0), // Reduced padding
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12), // Reduced spacing
+          ],
+
+          // Estimated duration
+          if (module.estimatedDuration != null) ...[
+            Row(
+              children: [
+                Icon(
+                  PhosphorIcons.clock(PhosphorIconsStyle.fill),
+                  size: 14, // Smaller icon
+                  color: Colors.grey.shade700,
+                ),
+                const SizedBox(width: 8), // Reduced spacing
+                Text(
+                  'Estimated time: ${module.estimatedDuration}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8), // Reduced spacing
+          ],
+
+          // Assessment
+          if (module.assessment != null) ...[
+            _buildSectionHeader('Assessment'),
+            const SizedBox(height: 6), // Reduced spacing
+            Text(
+              module.assessment!,
+              style: Theme.of(context).textTheme.bodySmall, // Smaller font
+            ),
+            const SizedBox(height: 12), // Reduced spacing
+          ],
+
+          // Additional notes
+          if (module.additionalNotes != null) ...[
+            _buildSectionHeader('Additional Notes'),
+            const SizedBox(height: 6), // Reduced spacing
+            Container(
+              padding: const EdgeInsets.all(8), // Reduced padding
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(6), // Smaller radius
+                border: Border.all(
+                  color: Colors.grey.shade300,
+                ),
+              ),
+              child: Text(
+                module.additionalNotes!,
+                style: Theme.of(context).textTheme.bodySmall, // Smaller font
+              ),
+            ),
+            const SizedBox(height: 12), // Reduced spacing
+          ],
+
+          // Navigation buttons at bottom on mobile
+          if (_isMobileView) ...[
+            const Divider(height: 1), // Make divider thinner
+            const SizedBox(height: 12), // Reduced spacing
+            _buildModuleNavigationButtons(module),
+            const SizedBox(height: 4), // Reduced spacing
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Build a section header
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade800,
+          ),
+    );
+  }
+
+  /// Build module navigation buttons for mobile - fix ParentDataWidget errors
+  Widget _buildModuleNavigationButtons(LearningPathModule currentModule) {
+    // Find previous and next modules
+    int currentIndex =
+        _path!.modules.indexWhere((m) => m.id == currentModule.id);
+    LearningPathModule? previousModule =
+        currentIndex > 0 ? _path!.modules[currentIndex - 1] : null;
+    LearningPathModule? nextModule = currentIndex < _path!.modules.length - 1
+        ? _path!.modules[currentIndex + 1]
+        : null;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Previous button
+        TextButton.icon(
+          icon: Icon(
+            PhosphorIcons.caretLeft(PhosphorIconsStyle.fill),
+            size: 16,
+          ),
+          label: const Text('Previous'),
+          onPressed: previousModule != null
+              ? () => setState(() => _selectedModule = previousModule)
+              : null,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.symmetric(
+                horizontal: 8, vertical: 6), // Reduced padding
           ),
         ),
 
-        // Locked
-        Opacity(
-          opacity: module.status == ModuleStatus.locked ? 1.0 : 0.5,
-          child: ChoiceChip(
-            label: const Text('Locked'),
-            selected: module.status == ModuleStatus.locked,
-            onSelected: (selected) {
-              if (selected) {
-                _updateModuleStatus(module, ModuleStatus.locked);
-              }
-            },
-            backgroundColor: Colors.grey.shade200,
-            selectedColor: Colors.grey.shade300,
-            labelStyle: TextStyle(
-              color: module.status == ModuleStatus.locked
-                  ? Colors.grey.shade900
-                  : Colors.grey.shade700,
-              fontWeight: module.status == ModuleStatus.locked
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
+        // Close button
+        IconButton(
+          icon: Icon(
+            PhosphorIcons.arrowUpRight(PhosphorIconsStyle.fill),
+            size: 20,
           ),
+          onPressed: () => setState(() => _selectedModule = null),
+          tooltip: 'Show all modules',
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
         ),
-        const SizedBox(width: 8),
 
-        // In Progress
-        Opacity(
-          opacity: module.status == ModuleStatus.inProgress ? 1.0 : 0.5,
-          child: ChoiceChip(
-            label: const Text('In Progress'),
-            selected: module.status == ModuleStatus.inProgress,
-            onSelected: (selected) {
-              if (selected) {
-                _updateModuleStatus(module, ModuleStatus.inProgress);
-              }
-            },
-            backgroundColor: AppColors.primary.withOpacity(0.1),
-            selectedColor: AppColors.primary.withOpacity(0.3),
-            labelStyle: TextStyle(
-              color: module.status == ModuleStatus.inProgress
-                  ? AppColors.primary
-                  : Colors.grey.shade700,
-              fontWeight: module.status == ModuleStatus.inProgress
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
+        // Next button
+        TextButton.icon(
+          icon: Icon(
+            PhosphorIcons.caretRight(PhosphorIconsStyle.fill),
+            size: 16,
           ),
-        ),
-        const SizedBox(width: 8),
-
-        // Done
-        Opacity(
-          opacity: module.status == ModuleStatus.done ? 1.0 : 0.5,
-          child: ChoiceChip(
-            label: const Text('Done'),
-            selected: module.status == ModuleStatus.done,
-            onSelected: (selected) {
-              if (selected) {
-                _updateModuleStatus(module, ModuleStatus.done);
-              }
-            },
-            backgroundColor: Colors.green.withOpacity(0.1),
-            selectedColor: Colors.green.withOpacity(0.3),
-            labelStyle: TextStyle(
-              color: module.status == ModuleStatus.done
-                  ? Colors.green.shade700
-                  : Colors.grey.shade700,
-              fontWeight: module.status == ModuleStatus.done
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
+          label: const Text('Next'),
+          onPressed: nextModule != null
+              ? () => setState(() => _selectedModule = nextModule)
+              : null,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.symmetric(
+                horizontal: 8, vertical: 6), // Reduced padding
           ),
         ),
       ],
+    );
+  }
+
+  /// Build module status selector - fix ParentDataWidget errors
+  Widget _buildStatusSelector(LearningPathModule module) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Status:',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 8),
+        // Wrap in horizontal scrollview for smaller screens
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              // Locked
+              SizedBox(
+                height: 36, // Fixed height for consistent sizing
+                child: _buildStatusButton(
+                  module: module,
+                  status: ModuleStatus.locked,
+                  icon: PhosphorIcons.lock(PhosphorIconsStyle.fill),
+                  label: 'Locked',
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // In Progress
+              SizedBox(
+                height: 36, // Fixed height for consistent sizing
+                child: _buildStatusButton(
+                  module: module,
+                  status: ModuleStatus.inProgress,
+                  icon: PhosphorIcons.caretRight(PhosphorIconsStyle.fill),
+                  label: 'In Progress',
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Done
+              SizedBox(
+                height: 36, // Fixed height for consistent sizing
+                child: _buildStatusButton(
+                  module: module,
+                  status: ModuleStatus.done,
+                  icon: PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                  label: 'Done',
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build a module status button
+  Widget _buildStatusButton({
+    required LearningPathModule module,
+    required ModuleStatus status,
+    required PhosphorIconData icon,
+    required String label,
+    required Color color,
+  }) {
+    final isSelected = module.status == status;
+
+    return ElevatedButton.icon(
+      icon: Icon(
+        icon,
+        color: isSelected ? Colors.white : color,
+        size: 16, // Smaller icon
+      ),
+      label: Text(
+        label,
+        style: TextStyle(fontSize: 12), // Smaller font
+      ),
+      onPressed: () {
+        if (!isSelected) {
+          _updateModuleStatus(module, status);
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? color : Colors.white,
+        foregroundColor: isSelected ? Colors.white : color,
+        side: BorderSide(color: color, width: 1),
+        elevation: isSelected ? 2 : 0,
+        padding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 6), // Reduced padding
+      ),
     );
   }
 }

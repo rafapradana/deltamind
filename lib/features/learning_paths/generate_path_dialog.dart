@@ -42,6 +42,19 @@ class _GeneratePathDialogState extends State<GeneratePathDialog> {
 
       if (!mounted) return;
 
+      // Check if this is a fallback path
+      bool isFallback = false;
+      if (generatedPath['is_fallback'] == true ||
+          generatedPath['additional_notes'] ==
+              'Created as fallback due to AI generation error' ||
+          (generatedPath['modules'] != null &&
+              generatedPath['modules'] is List &&
+              generatedPath['modules'].isNotEmpty &&
+              generatedPath['modules'][0]['additional_notes'] ==
+                  'Created as fallback due to AI generation error')) {
+        isFallback = true;
+      }
+
       // Create the learning path in the database
       await LearningPathService.createFromGeneratedPath(generatedPath);
 
@@ -49,10 +62,38 @@ class _GeneratePathDialogState extends State<GeneratePathDialog> {
 
       // Close dialog with success
       Navigator.of(context).pop(true);
+
+      // If it was a fallback path, show a notification
+      if (isFallback && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Created a basic learning path. AI generation had issues. You may want to edit this path later.',
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
+        String errorMsg = 'Failed to generate path';
+
+        // Show more user-friendly error messages based on error type
+        if (e
+            .toString()
+            .contains('Gemini AI service is currently unavailable')) {
+          errorMsg =
+              'AI service is temporarily unavailable. Please try again later.';
+        } else if (e.toString().contains('authentication')) {
+          errorMsg = 'Authentication error. Please log in again.';
+        } else if (e.toString().contains('internet')) {
+          errorMsg = 'Network error. Please check your internet connection.';
+        } else {
+          errorMsg = 'Error: ${e.toString().split(':').last.trim()}';
+        }
+
         setState(() {
-          _errorMessage = 'Failed to generate path: $e';
+          _errorMessage = errorMsg;
           _isGenerating = false;
         });
       }
