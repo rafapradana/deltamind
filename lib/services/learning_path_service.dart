@@ -236,90 +236,73 @@ class LearningPathService {
     }
   }
 
-  /// Generate a learning path using Gemini AI
-  static Future<Map<String, dynamic>> generateLearningPath(
-    String topic,
-  ) async {
+  /// Generate a learning path using Gemini AI with user preferences
+  static Future<Map<String, dynamic>> generateLearningPath({
+    required String topic,
+    String knowledgeLevel = 'beginner', // beginner, intermediate, advanced
+    String? learningGoals,
+    String? timeCommitment, // e.g. "2 hours daily for 3 weeks"
+    String? learningStyle, // e.g. "visual", "practical", "theoretical"
+    List<String>? focusAreas,
+  }) async {
     try {
       SupabaseService.checkAuthentication();
 
-      // Create the improved prompt for Gemini
+      // Create the improved prompt for Gemini with user preferences
       final prompt = '''
-Generate a visually structured learning path for the topic '$topic'. This will be displayed in a node-based graph visualization, with dependencies between modules shown as connecting lines.
+Generate a comprehensive, visually structured learning path for the topic '$topic'. This will be displayed in a node-based graph visualization, with dependencies between modules shown as connecting lines.
 
-Please create 5-8 modules that follow a logical progression from beginner to advanced, with consideration for:
+USER PREFERENCES:
+- Knowledge Level: ${knowledgeLevel.isNotEmpty ? knowledgeLevel : 'beginner'}
+- Learning Goals: ${learningGoals?.isNotEmpty == true ? learningGoals : 'Comprehensive understanding of the topic'}
+- Time Commitment: ${timeCommitment?.isNotEmpty == true ? timeCommitment : 'Flexible'}
+- Learning Style: ${learningStyle?.isNotEmpty == true ? learningStyle : 'Balanced approach'}
+- Focus Areas: ${focusAreas != null && focusAreas.isNotEmpty ? focusAreas.join(', ') : 'All aspects of the topic'}
 
-1. **Module Sequencing**: Ensure a clear progression from fundamentals to advanced concepts. Each module should build on previous modules when appropriate.
+Please create 5-8 modules that follow a logical progression from ${knowledgeLevel.isNotEmpty ? knowledgeLevel : 'beginner'} to advanced, with consideration for:
 
-2. **Visual Structure**: Consider how modules will look when displayed in a graph. Create a balanced structure that flows well visually.
+1. **Module Sequencing**: Ensure a clear progression from fundamentals to advanced concepts, tailored to the user's knowledge level. Each module should build on previous modules when appropriate.
+
+2. **Visual Structure**: Create a balanced structure that flows well visually in a graph format. Consider both linear and branching progressions where appropriate.
 
 3. **Dependencies**: Explicitly define which modules depend on other modules. This creates the connecting lines in the graph view.
 
-4. **Coherent Styling**: Use consistent formatting and naming conventions throughout.
+4. **Learning Objectives**: Create clear, measurable learning objectives for each module that align with the user's specified learning goals.
 
-Each module should include:
-- **Module Title**: Clear, concise title (3-5 words)
-- **Module Description**: Detailed description (2-3 sentences)
-- **Prerequisites**: Required prior knowledge
-- **Dependencies**: Numerical IDs of modules that must be completed first (empty array if this is a starting module)
-- **Resources**: Recommended learning resources (2-4 items with URLs if available)
-- **Learning Objectives**: 2-4 concrete, measurable objectives
-- **Estimated Duration**: Time to complete (e.g., "2 hours", "1 week")
-- **Assessment**: Suggested method to verify learning
-- **Additional Notes**: Optional tips or advanced concepts
+5. **Resources**: Recommend highly specific, high-quality resources for each module. Include a mix of:
+   - Video tutorials (from platforms like YouTube, Coursera, etc.)
+   - Reading materials (articles, documentation, books)
+   - Interactive exercises or projects
+   - Communities or forums for support
 
-**Output Format:**
-Return a JSON object with this structure:
+6. **Time Estimates**: Provide realistic time estimates for each module based on the user's time commitment.
 
+7. **Assessment**: Include practical assessment suggestions to verify understanding before proceeding to dependent modules.
+
+Format your response as a JSON object with the following structure:
+```json
 {
-  "title": "Learning Path: [Topic]",
-  "description": "A comprehensive learning path to master [Topic], from beginner to advanced concepts.",
+  "title": "Learning Path: [Topic Name]",
+  "description": "A comprehensive learning path for [topic], designed for [knowledge level] learners focused on [learning goals].",
   "modules": [
     {
       "module_id": "1",
       "title": "Module Title",
-      "description": "Detailed description of this module.",
-      "prerequisites": "Any prerequisites",
-      "dependencies": [],
-      "resources": [
-        "Resource 1: https://example.com",
-        "Resource 2: https://example.com"
-      ],
-      "learning_objectives": [
-        "Objective 1",
-        "Objective 2"
-      ],
-      "estimated_duration": "X hours/days",
-      "assessment": "Quiz, project, etc.",
-      "additional_notes": "Optional additional information"
+      "description": "Detailed module description",
+      "prerequisites": "Any prerequisites for this module",
+      "dependencies": ["list of module_ids this depends on"],
+      "resources": ["Specific, high-quality resource 1", "Resource 2", "..."],
+      "learning_objectives": ["Objective 1", "Objective 2", "..."],
+      "estimated_duration": "Realistic time estimate",
+      "assessment": "Specific assessment activity",
+      "additional_notes": "Any additional guidance"
     },
-    {
-      "module_id": "2",
-      "title": "Module Title",
-      "description": "Detailed description of this module.",
-      "prerequisites": "Any prerequisites",
-      "dependencies": ["1"],
-      "resources": [
-        "Resource 1: https://example.com",
-        "Resource 2: https://example.com"
-      ],
-      "learning_objectives": [
-        "Objective 1",
-        "Objective 2"
-      ],
-      "estimated_duration": "X hours/days",
-      "assessment": "Quiz, project, etc.",
-      "additional_notes": "Optional additional information"
-    }
     // Additional modules...
   ]
 }
+```
 
-IMPORTANT:
-- For dependencies, use the exact module_id values (as strings)
-- Ensure all modules connect to at least one other module (except the first one)
-- For advanced topics, consider creating branching paths (where multiple advanced modules depend on a core module)
-- Maintain a logical learning progression
+Your response MUST be valid JSON that can be parsed directly. Do not include any explanatory text before or after the JSON.
 ''';
 
       // Send to Gemini
