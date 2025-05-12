@@ -201,26 +201,26 @@ class _LearningPathsPageState extends State<LearningPathsPage>
   /// Build error view
   Widget _buildErrorView() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
             PhosphorIcons.warning(PhosphorIconsStyle.fill),
-            size: 64,
-            color: Colors.orange,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _errorMessage!,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadLearningPaths,
-            child: const Text('Try Again'),
-          ),
-        ],
+              size: 64,
+              color: Colors.orange,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadLearningPaths,
+              child: const Text('Try Again'),
+            ),
+          ],
       ),
     );
   }
@@ -607,7 +607,7 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                   vertical: 12,
                 ),
               ),
-            ),
+              ),
           ],
         ),
       ),
@@ -933,9 +933,9 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                         ),
                         Row(
                           children: [
-                            Text(
+                        Text(
                               formatDate(path.createdAt),
-                              style: Theme.of(context).textTheme.bodySmall,
+                          style: Theme.of(context).textTheme.bodySmall,
                             ),
                             if (path.category != null) ...[
                               const Text(' • '),
@@ -957,16 +957,16 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      if (path.isActive)
-                        Chip(
-                          label: const Text('Active'),
-                          backgroundColor: AppColors.primary.withOpacity(0.2),
-                          labelStyle: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                  if (path.isActive)
+                    Chip(
+                      label: const Text('Active'),
+                      backgroundColor: AppColors.primary.withOpacity(0.2),
+                      labelStyle: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
                             fontSize: 12,
-                          ),
-                          padding: EdgeInsets.zero,
+                      ),
+                      padding: EdgeInsets.zero,
                           materialTapTargetSize:
                               MaterialTapTargetSize.shrinkWrap,
                         ),
@@ -989,7 +989,7 @@ class _LearningPathsPageState extends State<LearningPathsPage>
                             fontWeight: FontWeight.bold,
                             color: _getDifficultyColor(path.difficulty),
                           ),
-                        ),
+                            ),
                       ),
                     ],
                   ),
@@ -1057,16 +1057,16 @@ class _LearningPathsPageState extends State<LearningPathsPage>
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [
+              children: [
                   // View button
                   TextButton.icon(
                     onPressed: () => _onPathTap(path),
-                    icon: Icon(
+                        icon: Icon(
                       PhosphorIcons.arrowUpRight(PhosphorIconsStyle.fill),
                       size: 16,
                     ),
                     label: const Text('View'),
-                    style: TextButton.styleFrom(
+                        style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,

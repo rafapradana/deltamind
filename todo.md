@@ -66,7 +66,15 @@ This document outlines the comprehensive plan to enhance the AI Learning Path Ge
 - [x] **(P0, E2)** Enhance the structure of learning objectives to be more measurable
 - [x] **(P0, E1)** Add support for detailed time estimates per module
 - [x] **(P1, E2)** Implement resource categorization (videos, readings, exercises)
-- [ ] **(P1, E2)** Add difficulty indicators for resources and modules
+- [x] **(P1, E2)** Add difficulty indicators for resources and modules
+  - Added difficulty column to the learning_path_modules table
+  - Added resource_difficulties JSONB column to store difficulty levels for resources
+  - Enhanced the LearningPathModule model with difficulty fields
+  - Updated the AI prompt to generate difficulty levels for modules and resources
+  - Added difficulty indicators to the module detail view
+  - Added difficulty badges to module nodes in the graph visualization
+  - Added difficulty indicators to the module list view
+  - Updated the graph legend to include difficulty levels
 - [ ] **(P1, E2)** Create templates for different learning domains
 
 ## 4. Progress Tracking and Achievements

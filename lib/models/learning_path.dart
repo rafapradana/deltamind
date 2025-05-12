@@ -138,6 +138,7 @@ class LearningPathModule {
   String? prerequisites;
   List<String> dependencies;
   List<String> resources;
+  List<Map<String, dynamic>> resourceDifficulties;
   List<String> learningObjectives;
   String? estimatedDuration;
   String? assessment;
@@ -145,6 +146,7 @@ class LearningPathModule {
   String moduleId;
   ModuleStatus status;
   int position;
+  String difficulty;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -161,6 +163,7 @@ class LearningPathModule {
     this.prerequisites,
     this.dependencies = const [],
     this.resources = const [],
+    this.resourceDifficulties = const [],
     this.learningObjectives = const [],
     this.estimatedDuration,
     this.assessment,
@@ -168,6 +171,7 @@ class LearningPathModule {
     required this.moduleId,
     this.status = ModuleStatus.locked,
     required this.position,
+    this.difficulty = 'intermediate',
     DateTime? createdAt,
     DateTime? updatedAt,
     this.noteId,
@@ -179,6 +183,22 @@ class LearningPathModule {
 
   /// Create from JSON
   factory LearningPathModule.fromJson(Map<String, dynamic> json) {
+    // Parse resource difficulties
+    List<Map<String, dynamic>> parsedResourceDifficulties = [];
+    if (json['resource_difficulties'] != null) {
+      if (json['resource_difficulties'] is List) {
+        parsedResourceDifficulties = List<Map<String, dynamic>>.from(
+          json['resource_difficulties']
+              .map((x) => Map<String, dynamic>.from(x)),
+        );
+      } else if (json['resource_difficulties'] is Map) {
+        // Handle case where it might be a JSON object
+        parsedResourceDifficulties = [
+          Map<String, dynamic>.from(json['resource_difficulties'])
+        ];
+      }
+    }
+
     return LearningPathModule(
       id: json['id'],
       pathId: json['path_id'],
@@ -190,6 +210,7 @@ class LearningPathModule {
           : [],
       resources:
           json['resources'] != null ? List<String>.from(json['resources']) : [],
+      resourceDifficulties: parsedResourceDifficulties,
       learningObjectives: json['learning_objectives'] != null
           ? List<String>.from(json['learning_objectives'])
           : [],
@@ -199,6 +220,7 @@ class LearningPathModule {
       moduleId: json['module_id'] ?? '',
       status: _parseStatus(json['status'] ?? 'locked'),
       position: json['position'] ?? 0,
+      difficulty: json['difficulty'] ?? 'intermediate',
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       noteId: json['note_id'],
@@ -243,6 +265,7 @@ class LearningPathModule {
       'prerequisites': prerequisites,
       'dependencies': dependencies,
       'resources': resources,
+      'resource_difficulties': resourceDifficulties,
       'learning_objectives': learningObjectives,
       'estimated_duration': estimatedDuration,
       'assessment': assessment,
@@ -250,6 +273,7 @@ class LearningPathModule {
       'module_id': moduleId,
       'status': statusToString(status),
       'position': position,
+      'difficulty': difficulty,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'note_id': noteId,
@@ -268,6 +292,7 @@ class LearningPathModule {
       'prerequisites': prerequisites,
       'dependencies': dependencies,
       'resources': resources,
+      'resource_difficulties': resourceDifficulties,
       'learning_objectives': learningObjectives,
       'estimated_duration': estimatedDuration,
       'assessment': assessment,
@@ -275,6 +300,7 @@ class LearningPathModule {
       'module_id': moduleId,
       'status': statusToString(status),
       'position': position,
+      'difficulty': difficulty,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'note_id': noteId,
@@ -290,12 +316,14 @@ class LearningPathModule {
     String? prerequisites,
     List<String>? dependencies,
     List<String>? resources,
+    List<Map<String, dynamic>>? resourceDifficulties,
     List<String>? learningObjectives,
     String? estimatedDuration,
     String? assessment,
     String? additionalNotes,
     ModuleStatus? status,
     int? position,
+    String? difficulty,
     String? noteId,
     String? quizId,
     String? deckId,
@@ -308,6 +336,7 @@ class LearningPathModule {
       prerequisites: prerequisites ?? this.prerequisites,
       dependencies: dependencies ?? this.dependencies,
       resources: resources ?? this.resources,
+      resourceDifficulties: resourceDifficulties ?? this.resourceDifficulties,
       learningObjectives: learningObjectives ?? this.learningObjectives,
       estimatedDuration: estimatedDuration ?? this.estimatedDuration,
       assessment: assessment ?? this.assessment,
@@ -315,6 +344,7 @@ class LearningPathModule {
       moduleId: moduleId,
       status: status ?? this.status,
       position: position ?? this.position,
+      difficulty: difficulty ?? this.difficulty,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
       noteId: noteId ?? this.noteId,
@@ -325,6 +355,6 @@ class LearningPathModule {
 
   @override
   String toString() {
-    return 'LearningPathModule{id: $id, title: $title, status: ${statusToString(status)}, position: $position}';
+    return 'LearningPathModule{id: $id, title: $title, difficulty: $difficulty, status: ${statusToString(status)}, position: $position}';
   }
 }

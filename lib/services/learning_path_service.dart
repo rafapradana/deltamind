@@ -277,13 +277,15 @@ Please create 5-8 modules that follow a logical progression from ${knowledgeLeve
 
 5. **Specific Learning Objectives**: Create clear, measurable learning objectives for each module using action verbs (explain, implement, analyze, evaluate, etc.). Make them specific enough to guide self-assessment.
 
-6. **Highly Specific Resources**: For each module, recommend:
+6. **Highly Specific Resources with Difficulty Indicators**: For each module, recommend:
    - Specific courses with platform names and course titles (e.g., "Machine Learning by Andrew Ng on Coursera")
    - Specific articles with publication names (e.g., "Understanding Neural Networks on Medium by [author]")
    - Books with author names (e.g., "Deep Learning by Ian Goodfellow")
    - Specific GitHub repositories or code examples with links where applicable
    - YouTube channels or specific videos with creator names
    - Interactive tools or platforms for practice
+   - For each resource, provide a difficulty indicator (beginner, intermediate, or advanced)
+   - Ensure resources align with the module difficulty level but include a mix of difficulty levels for diverse learning
 
 7. **Detailed Prerequisites**: Clearly state what knowledge is required before starting each module.
 
@@ -299,7 +301,14 @@ Please create 5-8 modules that follow a logical progression from ${knowledgeLeve
 
 10. **Additional Notes**: Include important tips, common pitfalls to avoid, or alternative learning approaches based on the user's learning style.
 
-11. **Categorization and Tagging**: Please also include:
+11. **Module Difficulty Levels**: Assign a specific difficulty level (beginner, intermediate, advanced) to each module based on:
+    - Content complexity 
+    - Required prior knowledge
+    - Conceptual difficulty
+    - Technical skills needed
+    - Time investment required
+
+12. **Categorization and Tagging**: Please also include:
     - An appropriate category for this learning path (e.g., "Programming", "Data Science", "Language Learning", etc.)
     - Difficulty level based on the user's knowledge level (beginner, intermediate, advanced)
     - 3-5 relevant tags that describe the learning path's content and can be used for searching and filtering
@@ -326,6 +335,13 @@ Format your response as a JSON object with the following structure:
         "Video: [Title] by [Creator] on YouTube",
         "Tool: [Name] for interactive practice"
       ],
+      "resource_difficulties": [
+        {"index": 0, "difficulty": "beginner|intermediate|advanced"},
+        {"index": 1, "difficulty": "beginner|intermediate|advanced"},
+        {"index": 2, "difficulty": "beginner|intermediate|advanced"},
+        {"index": 3, "difficulty": "beginner|intermediate|advanced"}
+      ],
+      "difficulty": "beginner|intermediate|advanced",
       "learning_objectives": ["Specific objective 1 using action verbs", "Objective 2", "..."],
       "estimated_duration": "Detailed time breakdown (e.g., 10 hours: 4h theory, 6h practice)",
       "assessment": "Detailed project idea with evaluation criteria",
@@ -510,6 +526,34 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
       tags = tags.take(5).toList();
     }
 
+    // Create resource difficulties based on resource indices
+    List<Map<String, dynamic>> createResourceDifficulties(
+        int count, String moduleDifficulty) {
+      final difficulties = ['beginner', 'intermediate', 'advanced'];
+      final List<Map<String, dynamic>> result = [];
+
+      for (int i = 0; i < count; i++) {
+        // For varied difficulties based on module difficulty and resource index
+        String difficulty = moduleDifficulty;
+
+        // Add some variation - first resources usually easier, later ones more advanced
+        if (i == 0 && moduleDifficulty != 'beginner') {
+          // First resource one level easier than module
+          difficulty = difficulties[difficulties.indexOf(moduleDifficulty) - 1];
+        } else if (i >= 3 && moduleDifficulty != 'advanced') {
+          // Later resources might be one level harder
+          difficulty = difficulties[difficulties.indexOf(moduleDifficulty) + 1];
+        }
+
+        result.add({
+          'index': i,
+          'difficulty': difficulty,
+        });
+      }
+
+      return result;
+    }
+
     return {
       "title": "Learning Path: $capitalizedTopic",
       "description": pathDescription,
@@ -528,10 +572,12 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
               : "Basic understanding of the subject area",
           "dependencies": [],
           "resources": [
-            ...resourcesByStyle.take(3),
+            ...resourcesByStyle.take(5),
             "Interactive exercises: Practice basic $topic concepts through hands-on activities on reputable learning platforms",
             "Community: Join online forums like Reddit r/${topic.replaceAll(' ', '')}, Discord groups, or Stack Overflow to connect with others learning $topic"
           ],
+          "resource_difficulties": createResourceDifficulties(7, 'beginner'),
+          "difficulty": "beginner",
           "learning_objectives": [
             "Define and explain key terminology and concepts in $topic",
             "Identify the main components and principles of $topic systems",
@@ -555,11 +601,14 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
           "prerequisites": "$levelLabel understanding of $topic fundamentals",
           "dependencies": ["1"],
           "resources": [
-            ...resourcesByStyle.skip(1).take(3),
+            ...resourcesByStyle.skip(1).take(6),
             "Documentation: Official guides and documentation for $topic platforms and tools",
             "Practice Projects: Complete guided projects that implement core $topic techniques",
             "Video Series: Comprehensive tutorials walking through practical $topic implementations"
           ],
+          "resource_difficulties":
+              createResourceDifficulties(9, 'intermediate'),
+          "difficulty": "intermediate",
           "learning_objectives": [
             "Apply fundamental $topic techniques to solve common problems",
             "Implement basic $topic solutions with proper structure and organization",
@@ -592,6 +641,8 @@ Your response MUST be valid JSON that can be parsed directly. Do not include any
                 ? "Specialized Resources: Materials focusing specifically on ${focusAreas.join(' and ')}"
                 : "Industry Case Studies: Real-world examples of advanced $topic implementations"
           ],
+          "resource_difficulties": createResourceDifficulties(5, 'advanced'),
+          "difficulty": "advanced",
           "learning_objectives": [
             "Implement advanced $topic techniques to solve complex problems",
             "Evaluate and select appropriate approaches for different $topic scenarios",

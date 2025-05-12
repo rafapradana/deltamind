@@ -652,6 +652,20 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
       bgColor = Colors.blue.withOpacity(0.05);
     }
 
+    // Helper function to get color for difficulty level
+    Color getDifficultyColor(String difficulty) {
+      switch (difficulty.toLowerCase()) {
+        case 'beginner':
+          return Colors.green;
+        case 'intermediate':
+          return Colors.orange;
+        case 'advanced':
+          return Colors.red;
+        default:
+          return Colors.grey;
+      }
+    }
+
     // Enhanced module card with better visual hierarchy and information display
     return GestureDetector(
       onTap: () {
@@ -699,7 +713,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status badge with color coding
+            // Status badge and module number with color coding
             Row(
               children: [
                 Container(
@@ -757,7 +771,31 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
+
+            // Difficulty badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: getDifficultyColor(module.difficulty).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(
+                  color: getDifficultyColor(module.difficulty),
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                module.difficulty.substring(0, 1).toUpperCase() +
+                    module.difficulty.substring(1).toLowerCase(),
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  color: getDifficultyColor(module.difficulty),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 4),
             // Module title with better prominence
             Text(
               module.title,
@@ -829,6 +867,20 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
 
   /// Build legend for graph symbols with improved design
   Widget _buildGraphLegend() {
+    // Helper function to get color for difficulty levels
+    Color getDifficultyColor(String difficulty) {
+      switch (difficulty.toLowerCase()) {
+        case 'beginner':
+          return Colors.green;
+        case 'intermediate':
+          return Colors.orange;
+        case 'advanced':
+          return Colors.red;
+        default:
+          return Colors.grey;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -844,86 +896,197 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
         ],
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
-        alignment: WrapAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          // Module status section
+          Text(
+            'Module Status:',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
-                  color: Colors.white,
-                  size: 10,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                      color: Colors.white,
+                      size: 10,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Completed',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
-              const Text(
-                'Completed',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.green,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      PhosphorIcons.playCircle(PhosphorIconsStyle.fill),
+                      color: Colors.white,
+                      size: 10,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'In Progress',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade400,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      PhosphorIcons.lock(PhosphorIconsStyle.fill),
+                      color: Colors.white,
+                      size: 10,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Locked',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  PhosphorIcons.playCircle(PhosphorIconsStyle.fill),
-                  color: Colors.white,
-                  size: 10,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'In Progress',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
+
+          // Difficulty section
+          const SizedBox(height: 8),
+          Text(
+            'Difficulty Level:',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  PhosphorIcons.lock(PhosphorIconsStyle.fill),
-                  color: Colors.white,
-                  size: 10,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: getDifficultyColor('beginner').withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        color: getDifficultyColor('beginner'),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      'Beginner',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: getDifficultyColor('beginner'),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
-              Text(
-                'Locked',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                      color:
+                          getDifficultyColor('intermediate').withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        color: getDifficultyColor('intermediate'),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      'Intermediate',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: getDifficultyColor('intermediate'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: getDifficultyColor('advanced').withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        color: getDifficultyColor('advanced'),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      'Advanced',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: getDifficultyColor('advanced'),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1126,6 +1289,20 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
         break;
     }
 
+    // Helper function to get color for difficulty level
+    Color getDifficultyColor(String difficulty) {
+      switch (difficulty.toLowerCase()) {
+        case 'beginner':
+          return Colors.green;
+        case 'intermediate':
+          return Colors.orange;
+        case 'advanced':
+          return Colors.red;
+        default:
+          return Colors.grey;
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
@@ -1158,13 +1335,41 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Module ${module.moduleId}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: color,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'Module ${module.moduleId}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: color,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Difficulty indicator
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: getDifficultyColor(module.difficulty)
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(3),
+                            border: Border.all(
+                              color: getDifficultyColor(module.difficulty),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Text(
+                            module.difficulty.substring(0, 1).toUpperCase() +
+                                module.difficulty.substring(1).toLowerCase(),
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: getDifficultyColor(module.difficulty),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
                       module.title,
@@ -1204,6 +1409,20 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
 
     final module = _selectedModule!;
 
+    // Helper function to get color for difficulty level
+    Color getDifficultyColor(String difficulty) {
+      switch (difficulty.toLowerCase()) {
+        case 'beginner':
+          return Colors.green;
+        case 'intermediate':
+          return Colors.orange;
+        case 'advanced':
+          return Colors.red;
+        default:
+          return Colors.grey;
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(
           horizontal: 8, vertical: 12), // Reduced margin
@@ -1222,11 +1441,40 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Module ${module.moduleId}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Text(
+                          'Module ${module.moduleId}',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Module difficulty indicator
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: getDifficultyColor(module.difficulty)
+                                .withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: getDifficultyColor(module.difficulty),
+                              width: 1,
+                            ),
                           ),
+                          child: Text(
+                            module.difficulty.substring(0, 1).toUpperCase() +
+                                module.difficulty.substring(1).toLowerCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: getDifficultyColor(module.difficulty),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2), // Reduced spacing
                     Text(
@@ -1347,9 +1595,24 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
           if (module.resources.isNotEmpty) ...[
             _buildSectionHeader('Resources'),
             const SizedBox(height: 6), // Reduced spacing
-            ...module.resources.map((resource) {
+            ...List.generate(module.resources.length, (index) {
+              final resource = module.resources[index];
+
+              // Get the difficulty for this resource
+              String difficultyLevel = 'intermediate'; // Default fallback
+
+              // Find matching resource difficulty by index if available
+              if (module.resourceDifficulties.isNotEmpty) {
+                final difficultyItem = module.resourceDifficulties.firstWhere(
+                    (d) => d['index'] == index,
+                    orElse: () => {'difficulty': difficultyLevel});
+                difficultyLevel =
+                    difficultyItem['difficulty'] ?? difficultyLevel;
+              }
+
               return Padding(
-                padding: const EdgeInsets.only(bottom: 6), // Reduced spacing
+                padding: const EdgeInsets.only(
+                    bottom: 8), // Increased spacing for readability
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1360,13 +1623,41 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
                     ),
                     const SizedBox(width: 8), // Reduced spacing
                     Expanded(
-                      child: Text(
-                        resource,
-                        style: TextStyle(
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                          fontSize: 12, // Smaller font
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            resource,
+                            style: TextStyle(
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                              fontSize: 12, // Smaller font
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: getDifficultyColor(difficultyLevel)
+                                  .withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(3),
+                              border: Border.all(
+                                color: getDifficultyColor(difficultyLevel),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              difficultyLevel.substring(0, 1).toUpperCase() +
+                                  difficultyLevel.substring(1).toLowerCase(),
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: getDifficultyColor(difficultyLevel),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
