@@ -2,6 +2,7 @@ import 'package:deltamind/core/constants/app_constants.dart';
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_theme.dart';
 import 'package:deltamind/features/auth/login_page.dart';
+import 'package:deltamind/services/onboarding_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -63,8 +64,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
     });
   }
 
-  void _navigateToLogin() {
-    context.go(AppRoutes.login);
+  Future<void> _completeOnboarding() async {
+    // Mark onboarding as completed
+    await OnboardingService.setOnboardingComplete();
+    // Navigate to login
+    if (mounted) {
+      context.go(AppRoutes.login);
+    }
+  }
+
+  Future<void> _skipOnboarding() async {
+    // Mark onboarding as completed even when skipped
+    await OnboardingService.setOnboardingComplete();
+    // Navigate to login
+    if (mounted) {
+      context.go(AppRoutes.login);
+    }
   }
 
   @override
@@ -96,7 +111,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ? SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _navigateToLogin,
+                            onPressed: _completeOnboarding,
                             child: const Text('Get Started'),
                           ),
                         )
@@ -104,7 +119,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             TextButton(
-                              onPressed: _navigateToLogin,
+                              onPressed: _skipOnboarding,
                               child: const Text('Skip'),
                             ),
                             ElevatedButton(

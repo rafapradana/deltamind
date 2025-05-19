@@ -1,6 +1,7 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/features/auth/auth_controller.dart';
+import 'package:deltamind/services/onboarding_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,17 +46,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     });
   }
 
-  void _navigateToNextScreen() {
-    // Check if user is logged in
+  Future<void> _navigateToNextScreen() async {
+    // First check if user has seen onboarding
+    final hasCompletedOnboarding = await OnboardingService.hasCompletedOnboarding();
+
+    // If not, show onboarding first
+    if (!hasCompletedOnboarding) {
+      if (mounted) {
+        context.go(AppRoutes.onboarding);
+        return;
+      }
+    }
+
+    // Then check if user is logged in
     final authState = ref.read(authControllerProvider);
     final isLoggedIn = authState.user != null;
 
     if (isLoggedIn) {
       // Navigate to dashboard if already logged in
-      context.go(AppRoutes.dashboard);
+      if (mounted) context.go(AppRoutes.dashboard);
     } else {
-      // Navigate to login directly if not logged in
-      context.go(AppRoutes.login);
+      // Navigate to login if not logged in
+      if (mounted) context.go(AppRoutes.login);
     }
   }
 
