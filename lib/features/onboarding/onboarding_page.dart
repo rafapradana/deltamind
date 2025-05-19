@@ -53,6 +53,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    debugPrint('Onboarding page initialized');
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -67,6 +73,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> _completeOnboarding() async {
     // Mark onboarding as completed
     await OnboardingService.setOnboardingComplete();
+    debugPrint('Onboarding completed, navigating to login');
     // Navigate to login
     if (mounted) {
       context.go(AppRoutes.login);
@@ -76,6 +83,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> _skipOnboarding() async {
     // Mark onboarding as completed even when skipped
     await OnboardingService.setOnboardingComplete();
+    debugPrint('Onboarding skipped, navigating to login');
     // Navigate to login
     if (mounted) {
       context.go(AppRoutes.login);

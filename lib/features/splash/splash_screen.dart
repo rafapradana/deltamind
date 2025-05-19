@@ -38,8 +38,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Start animation
     _animationController.forward();
 
-    // Navigate to appropriate screen after delay
-    Future.delayed(const Duration(seconds: 2), () {
+    // Navigate to appropriate screen after delay (reduced delay for better UX)
+    Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         _navigateToNextScreen();
       }
@@ -49,9 +49,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _navigateToNextScreen() async {
     // First check if user has seen onboarding
     final hasCompletedOnboarding = await OnboardingService.hasCompletedOnboarding();
+    debugPrint('hasCompletedOnboarding: $hasCompletedOnboarding');
 
     // If not, show onboarding first
     if (!hasCompletedOnboarding) {
+      debugPrint('Navigating to onboarding');
       if (mounted) {
         context.go(AppRoutes.onboarding);
         return;
@@ -61,12 +63,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Then check if user is logged in
     final authState = ref.read(authControllerProvider);
     final isLoggedIn = authState.user != null;
+    debugPrint('isLoggedIn: $isLoggedIn');
 
     if (isLoggedIn) {
       // Navigate to dashboard if already logged in
+      debugPrint('Navigating to dashboard');
       if (mounted) context.go(AppRoutes.dashboard);
     } else {
       // Navigate to login if not logged in
+      debugPrint('Navigating to login');
       if (mounted) context.go(AppRoutes.login);
     }
   }

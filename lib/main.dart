@@ -28,6 +28,7 @@ import 'package:deltamind/features/splash/splash_screen.dart';
 import 'package:deltamind/features/analytics/analytics_page.dart';
 import 'package:deltamind/features/search/search_page.dart';
 import 'package:deltamind/services/gemini_service.dart';
+import 'package:deltamind/services/onboarding_service.dart';
 import 'package:deltamind/services/quiz_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
 import 'package:deltamind/core/routing/auth_middleware.dart';
@@ -56,6 +57,10 @@ void main() async {
 
     // Initialize other services
     await GeminiService.initialize();
+    
+    // Reset onboarding status for testing
+    await OnboardingService.resetOnboardingStatus();
+    debugPrint('Onboarding status reset for testing purposes');
 
     // Add another small delay to ensure all services are initialized
     await Future.delayed(const Duration(milliseconds: 500));
@@ -113,11 +118,11 @@ final _routerProvider = Provider<GoRouter>((ref) {
   final _routerNotifier = _RouterNotifier(ref);
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
     refreshListenable:
         _routerNotifier, // Refresh routes when auth state changes
-    redirect: (context, state) {
+    redirect: (BuildContext context, GoRouterState state) {
       // Skip redirection for splash screen
       final isSplashRoute = state.matchedLocation == AppRoutes.splash;
       if (isSplashRoute) {
@@ -138,16 +143,21 @@ final _routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
+      // If we're at the splash screen, let it handle navigation
+      // The splash screen will check onboarding status and redirect accordingly
+      if (state.matchedLocation == AppRoutes.splash) {
+        return null;
+      }
+
       // If the user is not logged in and is not on a public route, redirect to login
       if (!isLoggedIn && !isPublicRoute) {
         debugPrint(
             'Redirecting unauthenticated user to login from ${state.matchedLocation}');
-        // Clear any error messages that might be in the state
         return AppRoutes.login;
       }
 
       // If the user is logged in and is on a public route, redirect to dashboard
-      if (isLoggedIn && isPublicRoute) {
+      if (isLoggedIn && isPublicRoute && !isOnboardingRoute) {
         debugPrint(
             'Redirecting authenticated user to dashboard from ${state.matchedLocation}');
         return AppRoutes.dashboard;
