@@ -142,15 +142,6 @@ class Flashcard {
   /// When the card was last reviewed
   final DateTime? lastReviewedAt;
 
-  /// When the card should be reviewed next (for spaced repetition)
-  final DateTime? nextReviewDate;
-
-  /// Ease factor for spaced repetition algorithm
-  final double easeFactor;
-
-  /// Interval for spaced repetition algorithm
-  final int interval;
-
   /// Number of times the card has been reviewed
   final int reviewCount;
 
@@ -168,9 +159,6 @@ class Flashcard {
     required this.answer,
     this.hint,
     this.lastReviewedAt,
-    this.nextReviewDate,
-    this.easeFactor = 2.5,
-    this.interval = 0,
     this.reviewCount = 0,
     required this.createdAt,
     this.updatedAt,
@@ -206,11 +194,6 @@ class Flashcard {
       lastReviewedAt: json['last_reviewed_at'] != null
           ? DateTime.parse(json['last_reviewed_at'] as String)
           : null,
-      nextReviewDate: json['next_review_date'] != null
-          ? DateTime.parse(json['next_review_date'] as String)
-          : null,
-      easeFactor: (json['ease_factor'] as num?)?.toDouble() ?? 2.5,
-      interval: json['interval'] as int? ?? 0,
       reviewCount: json['review_count'] as int? ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
@@ -228,9 +211,6 @@ class Flashcard {
       'answer': answer,
       'hint': hint,
       'last_reviewed_at': lastReviewedAt?.toIso8601String(),
-      'next_review_date': nextReviewDate?.toIso8601String(),
-      'ease_factor': easeFactor,
-      'interval': interval,
       'review_count': reviewCount,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -245,9 +225,6 @@ class Flashcard {
     String? answer,
     String? hint,
     DateTime? lastReviewedAt,
-    DateTime? nextReviewDate,
-    double? easeFactor,
-    int? interval,
     int? reviewCount,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -259,9 +236,6 @@ class Flashcard {
       answer: answer ?? this.answer,
       hint: hint ?? this.hint,
       lastReviewedAt: lastReviewedAt ?? this.lastReviewedAt,
-      nextReviewDate: nextReviewDate ?? this.nextReviewDate,
-      easeFactor: easeFactor ?? this.easeFactor,
-      interval: interval ?? this.interval,
       reviewCount: reviewCount ?? this.reviewCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

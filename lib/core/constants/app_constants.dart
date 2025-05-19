@@ -8,7 +8,7 @@ class AppConstants {
 
   /// App description
   static const String appDescription =
-      'Learn and memorize effectively with AI-generated quizzes and spaced repetition';
+      'Learn and memorize effectively with AI-generated quizzes';
 
   /// Copyright text
   static const String copyright = '© 2025 DeltaMind';

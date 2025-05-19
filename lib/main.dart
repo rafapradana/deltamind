@@ -21,7 +21,6 @@ import 'package:deltamind/features/profile/profile_page.dart';
 import 'package:deltamind/features/quiz/create_quiz_page.dart';
 import 'package:deltamind/features/quiz/quiz_list_page.dart';
 import 'package:deltamind/features/quiz/take_quiz_page.dart';
-import 'package:deltamind/features/reviews/reviews_page.dart';
 import 'package:deltamind/features/history/history_page.dart';
 import 'package:deltamind/features/history/quiz_review_detail_page.dart';
 import 'package:deltamind/features/splash/splash_screen.dart';
