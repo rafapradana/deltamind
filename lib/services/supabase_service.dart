@@ -74,13 +74,6 @@ class SupabaseService {
     return await client.auth.signUp(email: email, password: password);
   }
 
-  /// Sign in with Google
-  static Future<void> signInWithGoogle() async {
-    await client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: kIsWeb ? null : 'io.supabase.deltamind://login-callback/',
-    );
-  }
 
   /// Sign out
   static Future<void> signOut() async {

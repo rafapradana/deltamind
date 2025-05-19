@@ -3,7 +3,6 @@ import 'package:deltamind/core/theme/app_theme.dart';
 import 'package:deltamind/features/auth/register_page.dart';
 import 'package:deltamind/features/dashboard/dashboard_page.dart';
 import 'package:deltamind/services/supabase_service.dart';
-import 'package:deltamind/widgets/google_logo.dart';
 import 'package:deltamind/widgets/loading_button.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -50,32 +49,6 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (context) => const DashboardPage()),
         );
       }
-    } on AuthException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An unexpected error occurred';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await SupabaseService.signInWithGoogle();
-      // We'll be redirected to Google Auth, then back to app via deep link
     } on AuthException catch (e) {
       setState(() {
         _errorMessage = e.message;
@@ -199,43 +172,6 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: _signInWithEmail,
                   isLoading: _isLoading,
                   child: const Text('Sign In'),
-                ),
-                const SizedBox(height: 16),
-
-                // Divider with "or"
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'OR',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                      ),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Google sign in
-                OutlinedButton(
-                  onPressed: _isLoading ? null : _signInWithGoogle,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 8,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const GoogleLogo(size: 24),
-                      const SizedBox(width: 12),
-                      const Text('Sign in with Google'),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 24),
 

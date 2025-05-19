@@ -112,20 +112,7 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  /// Sign in with Google
-  Future<void> signInWithGoogle() async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-      await SupabaseService.signInWithGoogle();
-      // Note: Auth state will be updated by the onAuthStateChange listener
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-      rethrow;
-    }
-  }
+
 
   /// Sign out
   Future<void> signOut() async {
