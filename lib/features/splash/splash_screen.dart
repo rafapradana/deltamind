@@ -47,30 +47,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _navigateToNextScreen() async {
-    // First check if user has seen onboarding
-    final hasCompletedOnboarding = await OnboardingService.hasCompletedOnboarding();
-    debugPrint('hasCompletedOnboarding: $hasCompletedOnboarding');
-
-    // If not, show onboarding first
-    if (!hasCompletedOnboarding) {
-      debugPrint('Navigating to onboarding');
-      if (mounted) {
-        context.go(AppRoutes.onboarding);
-        return;
-      }
-    }
-
-    // Then check if user is logged in
+    // Check if user is logged in first
     final authState = ref.read(authControllerProvider);
     final isLoggedIn = authState.user != null;
     debugPrint('isLoggedIn: $isLoggedIn');
 
     if (isLoggedIn) {
-      // Navigate to dashboard if already logged in
+      // If user is logged in, navigate to dashboard
       debugPrint('Navigating to dashboard');
       if (mounted) context.go(AppRoutes.dashboard);
     } else {
-      // Navigate to login if not logged in
+      // If user is not logged in, navigate to login
       debugPrint('Navigating to login');
       if (mounted) context.go(AppRoutes.login);
     }

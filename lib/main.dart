@@ -58,9 +58,9 @@ void main() async {
     // Initialize other services
     await GeminiService.initialize();
     
-    // Reset onboarding status for testing
-    await OnboardingService.resetOnboardingStatus();
-    debugPrint('Onboarding status reset for testing purposes');
+    // Uncomment for testing onboarding
+    // await OnboardingService.resetOnboardingStatus();
+    // debugPrint('Onboarding status reset for testing purposes');
 
     // Add another small delay to ensure all services are initialized
     await Future.delayed(const Duration(milliseconds: 500));
@@ -130,13 +130,12 @@ final _routerProvider = Provider<GoRouter>((ref) {
       }
 
       final isLoggedIn = authState.user != null;
-      final isOnboardingRoute = state.matchedLocation == AppRoutes.onboarding;
+      debugPrint('GoRouter redirect check: isLoggedIn=$isLoggedIn, path=${state.matchedLocation}');
       final isLoginRoute = state.matchedLocation == AppRoutes.login;
       final isRegisterRoute = state.matchedLocation == AppRoutes.register;
 
       // Define which routes are public (don't require authentication)
-      final isPublicRoute =
-          isOnboardingRoute || isLoginRoute || isRegisterRoute;
+      final isPublicRoute = isLoginRoute || isRegisterRoute;
 
       // If we're currently loading auth state, don't redirect
       if (authState.isLoading) {
@@ -144,7 +143,6 @@ final _routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If we're at the splash screen, let it handle navigation
-      // The splash screen will check onboarding status and redirect accordingly
       if (state.matchedLocation == AppRoutes.splash) {
         return null;
       }
@@ -157,7 +155,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If the user is logged in and is on a public route, redirect to dashboard
-      if (isLoggedIn && isPublicRoute && !isOnboardingRoute) {
+      if (isLoggedIn && isPublicRoute) {
         debugPrint(
             'Redirecting authenticated user to dashboard from ${state.matchedLocation}');
         return AppRoutes.dashboard;
@@ -172,10 +170,6 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.splash,
         builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.onboarding,
-        builder: (context, state) => const OnboardingPage(),
       ),
       GoRoute(
         path: AppRoutes.login,
@@ -311,14 +305,15 @@ class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     // Listen to auth state changes
     _ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      // Only notify if auth status (logged in/out) changed
+      // Always notify on any auth state change to ensure routing is updated
       final didAuthStateChange = previous?.user != next.user;
+      final isAuthLoading = next.isLoading;
       _previousAuthState = next;
-      if (didAuthStateChange) {
-        debugPrint('Auth state changed: user=${next.user != null}');
-        // Notify immediately on auth state change
-        notifyListeners();
-      }
+      
+      debugPrint('Auth state change detected: user=${next.user != null}, loading=${isAuthLoading}');
+      
+      // Notify immediately on auth state change or loading state change
+      notifyListeners();
     });
   }
 }

@@ -141,19 +141,21 @@ class AuthController extends StateNotifier<AuthState> {
       await SupabaseService.signOut();
 
       // Ensure we've completely cleared the user state
-      debugPrint('User signed out successfully');
+      debugPrint('User signed out in AuthController');
 
-      // Update final state
-      state = state.copyWith(isLoading: false);
+      // Double-check with Supabase that user is actually signed out
+      final currentUser = SupabaseService.currentUser;
+      if (currentUser != null) {
+        debugPrint('Warning: User still exists in Supabase after signOut, forcing null in state');
+      }
+
+      // Make sure state is correctly updated
+      state = AuthState(user: null, isLoading: false, error: null);
     } catch (e) {
       debugPrint('Error in AuthController.signOut: $e');
       // Even if there's an error, keep the user as null
       // This prevents UI components from thinking the user is still logged in
-      state = state.copyWith(
-        user: null,
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = AuthState(user: null, isLoading: false, error: e.toString());
       rethrow;
     }
   }

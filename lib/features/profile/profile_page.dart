@@ -324,15 +324,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
 
     try {
-      // Sign out first
+      // Navigate to login first to prevent router issues
+      if (mounted) {
+        // This ensures we're already at the login page when signOut completes
+        context.go(AppRoutes.login);
+      }
+
+      // Then sign out (even if navigation has started)
       await ref.read(authControllerProvider.notifier).signOut();
 
-      // Then navigate (only if still mounted)
+      // Show success message after sign out is complete
       if (mounted) {
-        // Use go instead of navigateNamed for better navigation control
-        context.go(AppRoutes.login);
-
-        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Signed out successfully'),
@@ -349,9 +351,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             backgroundColor: AppColors.error,
           ),
         );
-
-        // Even if sign out failed, redirect to login for safety
-        context.go(AppRoutes.login);
       }
     } finally {
       // Only update state if the widget is still mounted
