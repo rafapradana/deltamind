@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:deltamind/models/flashcard.dart';
 import 'package:deltamind/services/gemini_service.dart';
 import 'package:deltamind/services/supabase_service.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';

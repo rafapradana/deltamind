@@ -5,7 +5,7 @@ import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/features/auth/auth_controller.dart';
 import 'package:deltamind/services/supabase_service.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -123,16 +123,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           fileName = image.name;
         }
       } catch (e) {
-        debugPrint('Error with ImagePicker, falling back to FilePicker: $e');
-        // Fall back to FilePicker if ImagePicker fails
-        final result = await FilePicker.platform.pickFiles(
-          type: FileType.image,
-          allowMultiple: false,
+        debugPrint('Error with ImagePicker, falling back to file_selector: $e');
+        // Fall back to file_selector if ImagePicker fails
+        const XTypeGroup typeGroup = XTypeGroup(
+          label: 'images',
+          extensions: ['jpg', 'jpeg', 'png', 'gif'],
         );
+        final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
 
-        if (result != null && result.files.single.bytes != null) {
-          imageBytes = result.files.single.bytes!;
-          fileName = result.files.single.name;
+        if (file != null) {
+          imageBytes = await file.readAsBytes();
+          fileName = file.name;
         }
       }
 
@@ -188,16 +189,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   /// Pick file from system (for web or desktop)
   Future<void> _pickFileFromSystem() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'gif'],
+      const XTypeGroup typeGroup = XTypeGroup(
+        label: 'images',
+        extensions: ['jpg', 'jpeg', 'png', 'gif'],
       );
+      
+      final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
 
-      if (result != null && result.files.single.bytes != null) {
-        await _uploadProfilePicture(
-          result.files.single.bytes!,
-          result.files.single.name,
-        );
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        await _uploadProfilePicture(bytes, file.name);
       }
     } catch (e) {
       debugPrint('Error picking file: $e');

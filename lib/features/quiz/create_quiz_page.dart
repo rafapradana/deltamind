@@ -3,7 +3,7 @@ import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/core/theme/app_theme.dart';
 import 'package:deltamind/features/quiz/quiz_controller.dart';
 import 'package:deltamind/services/gemini_service.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +12,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'dart:io';
 
 /// Page for creating a new quiz
 class CreateQuizPage extends ConsumerStatefulWidget {
@@ -34,6 +35,10 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
   String? _filePath;
   String? _fileName;
   Uint8List? _fileBytes;
+  String? _selectedFileType;
+  String? _selectedFileName;
+  File? _selectedFile;
+  Uint8List? _webFileBytes;
   // Define max file size constant if not in AppConstants
   static const int maxFileSize = 5 * 1024 * 1024; // 5MB
 
@@ -46,70 +51,40 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
 
   Future<void> _pickFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['txt', 'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-        withData: true, // Ensures bytes are available for web platform
+      const XTypeGroup typeGroup = XTypeGroup(
+        label: 'documents',
+        extensions: ['pdf', 'txt', 'doc', 'docx'],
       );
+      
+      final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
 
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-
-        // Check file size
-        if (file.size > maxFileSize) {
-          setState(() {
-            _errorMessage = 'File is too large. Maximum size is 5MB.';
-          });
-          return;
-        }
-
-        // Validate if we have bytes for web platform
-        if (kIsWeb && file.bytes == null) {
-          setState(() {
-            _errorMessage = 'Error: Cannot access file data on web platform.';
-          });
-          return;
-        }
-
-        final String fileExtension = file.name.split('.').last.toLowerCase();
-        if (![
-          'txt',
-          'pdf',
-          'doc',
-          'docx',
-          'jpg',
-          'jpeg',
-          'png',
-        ].contains(fileExtension)) {
-          setState(() {
-            _errorMessage =
-                'Unsupported file format. Please upload a text, document, PDF, or image file.';
-          });
-          return;
-        }
-
-        // Set a suggested title based on the file name
-        final fileNameWithoutExtension = file.name.split('.').first;
-        if (_titleController.text.isEmpty) {
-          _titleController.text = fileNameWithoutExtension.replaceAll('_', ' ');
-        }
+      if (file != null) {
+        final fileName = file.name;
+        final fileExt = fileName.split('.').last.toLowerCase();
 
         setState(() {
-          _fileName = file.name;
-          _fileBytes = file.bytes; // This works on all platforms including web
-          // Only set path if not on web platform
-          if (!kIsWeb) {
-            _filePath = file.path;
+          _selectedFileName = fileName;
+          _selectedFileType = fileExt;
+
+          // Handle file differently based on platform
+          if (kIsWeb) {
+            // For web, store bytes
+            file.readAsBytes().then((bytes) {
+              setState(() {
+                _webFileBytes = bytes;
+              });
+            });
+            _selectedFile = null;
+          } else {
+            // For mobile platforms, create File object from path
+            _selectedFile = File(file.path);
+            _webFileBytes = null;
           }
-          _errorMessage = null;
-        });
 
-        // Update the UI to show the file is ready for processing
-        setState(() {
-          _contentController.text =
-              'File uploaded: $_fileName\n\n'
-              '${_getFileTypeDescription(fileExtension)} ready for processing.\n\n'
-              'Click "Generate Quiz" to create a quiz from this file content.';
+          // Default title from filename without extension
+          if (_titleController.text.isEmpty) {
+            _titleController.text = fileName.split('.').first;
+          }
         });
       }
     } catch (e) {

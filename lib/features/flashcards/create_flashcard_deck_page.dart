@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/models/flashcard.dart';
 import 'package:deltamind/services/flashcard_service.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -41,14 +41,15 @@ class _CreateFlashcardDeckPageState extends State<CreateFlashcardDeckPage> {
 
   Future<void> _pickFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'txt', 'doc', 'docx'],
-        withData: true, // Important for web - get file bytes
+      const XTypeGroup typeGroup = XTypeGroup(
+        label: 'documents',
+        extensions: ['pdf', 'txt', 'doc', 'docx'],
       );
+      
+      final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
 
-      if (result != null) {
-        final fileName = result.files.single.name;
+      if (file != null) {
+        final fileName = file.name;
         final fileExt = fileName.split('.').last.toLowerCase();
 
         setState(() {
@@ -58,15 +59,16 @@ class _CreateFlashcardDeckPageState extends State<CreateFlashcardDeckPage> {
           // Handle file differently based on platform
           if (kIsWeb) {
             // For web, store bytes
-            _webFileBytes = result.files.single.bytes;
+            file.readAsBytes().then((bytes) {
+              setState(() {
+                _webFileBytes = bytes;
+              });
+            });
             _selectedFile = null;
           } else {
             // For mobile platforms, create File object from path
-            final path = result.files.single.path;
-            if (path != null) {
-              _selectedFile = File(path);
-              _webFileBytes = null;
-            }
+            _selectedFile = File(file.path);
+            _webFileBytes = null;
           }
 
           // Default title from filename without extension
