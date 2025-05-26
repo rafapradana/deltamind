@@ -4,9 +4,8 @@ import 'package:deltamind/models/learning_path.dart';
 import 'package:deltamind/services/learning_path_service.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:graphview/graphview.dart';
 
-/// Learning path detail page with node graph visualization
+/// Learning path detail page
 class LearningPathDetailPage extends StatefulWidget {
   final String pathId;
 
@@ -25,10 +24,6 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
   LearningPath? _path;
   String? _errorMessage;
   LearningPathModule? _selectedModule;
-  final Graph graph = Graph()..isTree = true;
-  BuchheimWalkerConfiguration builder = BuchheimWalkerConfiguration();
-
-  // Tab controller for mobile view
   late TabController _tabController;
 
   // For detecting mobile view
@@ -37,15 +32,8 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
   @override
   void initState() {
     super.initState();
-    _loadLearningPath();
     _tabController = TabController(length: 2, vsync: this);
-
-    // Configure the graph layout with improved spacing and orientation
-    builder
-      ..siblingSeparation = 120
-      ..levelSeparation = 180
-      ..subtreeSeparation = 180
-      ..orientation = BuchheimWalkerConfiguration.ORIENTATION_TOP_BOTTOM;
+    _loadLearningPath();
   }
 
   @override
@@ -67,8 +55,6 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
 
       if (!mounted) return;
 
-      _buildGraph(path);
-
       setState(() {
         _path = path;
         _isLoading = false;
@@ -83,94 +69,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
     }
   }
 
-  /// Build the graph from the learning path modules
-  void _buildGraph(LearningPath path) {
-    graph.nodes.clear();
-    graph.edges.clear();
 
-    // Create a map from moduleId to module for easy dependency lookup
-    final Map<String, Node> moduleNodes = {};
-
-    // First pass: create nodes for all modules
-    for (var module in path.modules) {
-      final node = Node.Id(module.id);
-      moduleNodes[module.id] = node;
-    }
-
-    // Second pass: create edges based on dependencies
-    for (var module in path.modules) {
-      // If no dependencies, connect to previous module by position
-      if (module.dependencies.isEmpty) {
-        // Connect sequential modules if they're not the first one
-        if (module.position > 0) {
-          final prevModule = path.modules.firstWhere(
-              (m) => m.position == module.position - 1,
-              orElse: () => path.modules.first);
-
-          if (moduleNodes.containsKey(prevModule.id)) {
-            _addEdgeWithStyle(moduleNodes[prevModule.id]!,
-                moduleNodes[module.id]!, prevModule.status);
-          }
-        }
-      } else {
-        // Connect to all dependencies
-        for (var depId in module.dependencies) {
-          // Find the module with moduleId that matches the dependency
-          final depModule = path.modules.firstWhere((m) => m.moduleId == depId,
-              orElse: () => path.modules.first);
-
-          if (moduleNodes.containsKey(depModule.id)) {
-            _addEdgeWithStyle(moduleNodes[depModule.id]!,
-                moduleNodes[module.id]!, depModule.status);
-          }
-        }
-      }
-    }
-
-    // If no edges were created, create a default chain from the first module
-    if (graph.edges.isEmpty && path.modules.isNotEmpty) {
-      for (int i = 0; i < path.modules.length - 1; i++) {
-        final currentModule = path.modules[i];
-        final nextModule = path.modules[i + 1];
-
-        if (moduleNodes.containsKey(currentModule.id) &&
-            moduleNodes.containsKey(nextModule.id)) {
-          _addEdgeWithStyle(moduleNodes[currentModule.id]!,
-              moduleNodes[nextModule.id]!, currentModule.status);
-        }
-      }
-    }
-  }
-
-  /// Add an edge with appropriate styling based on module status
-  void _addEdgeWithStyle(Node from, Node to, ModuleStatus status) {
-    Paint edgePaint;
-
-    switch (status) {
-      case ModuleStatus.done:
-        edgePaint = Paint()
-          ..color = Colors.green
-          ..strokeWidth = 3
-          ..style = PaintingStyle.stroke;
-        break;
-      case ModuleStatus.inProgress:
-        edgePaint = Paint()
-          ..color = AppColors.primary
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke;
-        break;
-      case ModuleStatus.locked:
-      default:
-        edgePaint = Paint()
-          ..color = Colors.grey.shade400
-          ..strokeWidth = 1.5
-          ..style = PaintingStyle.stroke;
-        break;
-    }
-
-    // Add custom edge with curved style for better visualization
-    graph.addEdge(from, to, paint: edgePaint);
-  }
 
   /// Update a module's status
   Future<void> _updateModuleStatus(
@@ -199,8 +98,7 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
           _isLoading = false;
         });
 
-        // Rebuild the graph to update edge styles
-        _buildGraph(_path!);
+
       } else {
         // If module isn't found, refresh the entire path
         await _loadLearningPath();
@@ -227,15 +125,6 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
             tooltip: 'Refresh',
           ),
         ],
-        bottom: _isMobileView
-            ? TabBar(
-                controller: _tabController,
-                tabs: [
-                  Tab(text: 'Overview'),
-                  Tab(text: 'Module Graph'),
-                ],
-              )
-            : null,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -278,52 +167,28 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
       return const Center(child: Text('Path not found'));
     }
 
-    // Mobile view uses TabBarView
+    // Mobile view 
     if (_isMobileView) {
       return Column(
         children: [
           _buildPathHeader(),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Overview tab (modules list)
-                _selectedModule == null
-                    ? _buildPathOverview()
-                    : _buildModuleDetail(),
-
-                // Module Graph tab
-                _buildModuleGraph(),
-              ],
-            ),
+            child: _selectedModule == null
+                ? _buildPathOverview()
+                : _buildModuleDetail(),
           ),
         ],
       );
     }
 
-    // Desktop view uses Row layout
+    // Desktop view
     return Column(
       children: [
         _buildPathHeader(),
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Graph visualization (2/3 of screen)
-              Expanded(
-                flex: 2,
-                child: _buildModuleGraph(),
-              ),
-
-              // Details panel (1/3 of screen)
-              Expanded(
-                flex: 1,
-                child: _selectedModule == null
-                    ? _buildPathOverview()
-                    : _buildModuleDetail(),
-              ),
-            ],
-          ),
+          child: _selectedModule == null
+              ? _buildPathOverview()
+              : _buildModuleDetail(),
         ),
       ],
     );
@@ -461,102 +326,6 @@ class _LearningPathDetailPageState extends State<LearningPathDetailPage>
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  /// Build a module graph visualization with improved layout
-  Widget _buildModuleGraph() {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Learning Path Visualization',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                if (_isMobileView)
-                  IconButton(
-                    icon: Icon(
-                      _selectedModule == null
-                          ? PhosphorIcons.listPlus(PhosphorIconsStyle.fill)
-                          : PhosphorIcons.arrowSquareOut(
-                              PhosphorIconsStyle.fill),
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      _tabController.animateTo(0);
-                    },
-                    tooltip: _selectedModule == null
-                        ? 'Show Modules'
-                        : 'View Module',
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                  ),
-              ],
-            ),
-            const Divider(height: 16),
-
-            // Module selection dropdown for mobile
-            if (_isMobileView) ...[
-              _buildMobileModuleSelector(),
-              const SizedBox(height: 8),
-            ],
-
-            // Graph visualization with improved interaction
-            Expanded(
-              child: InteractiveViewer(
-                constrained: false,
-                boundaryMargin: const EdgeInsets.all(100),
-                minScale: 0.1,
-                maxScale: 2.5,
-                child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height * 0.6,
-                  child: GraphView(
-                    graph: graph,
-                    algorithm: BuchheimWalkerAlgorithm(
-                      builder,
-                      TreeEdgeRenderer(builder),
-                    ),
-                    paint: Paint()
-                      ..color = Colors.green
-                      ..strokeWidth = 1
-                      ..style = PaintingStyle.stroke,
-                    builder: (Node node) {
-                      // Find the corresponding module based on the node id
-                      final moduleId = node.key!.value.toString();
-                      final module = _path!.modules.firstWhere(
-                        (m) => m.id == moduleId,
-                        orElse: () => _path!.modules.first,
-                      );
-
-                      return _buildModuleNode(module);
-                    },
-                  ),
-                ),
-              ),
-            ),
-
-            // Enhanced legend with better design
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: _buildGraphLegend(),
-            ),
-          ],
-        ),
       ),
     );
   }

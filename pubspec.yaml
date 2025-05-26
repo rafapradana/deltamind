@@ -79,7 +79,6 @@ dependencies:
   # Security and Encryption
   crypto: ^3.0.3
   encrypt: ^5.0.3
-  graphview: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -106,7 +105,6 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/logos/
-    - assets/images/
     - .env
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
