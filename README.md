@@ -1,5 +1,7 @@
 # DeltaMind: AI-Powered Learning Assistant
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rafapradana/deltamind)
+
 ## 🧠 Overview
 
 DeltaMind is an intelligent learning assistant that helps users create personalized quizzes from their study materials using AI. It analyzes your content, generates relevant questions, and provides tailored feedback to enhance your learning experience.
