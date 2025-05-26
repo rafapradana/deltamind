@@ -1,6 +1,5 @@
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/services/analytics_service.dart';
-import 'package:deltamind/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -43,7 +42,7 @@ class _QuizTotalsCardState extends State<QuizTotalsCard> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading additional analytics data: $e');
+      debugPrint('Error loading additional analytics data: $e');
       setState(() {
         _isLoading = false;
       });

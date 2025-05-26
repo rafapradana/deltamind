@@ -177,6 +177,24 @@ class LearningPathService {
     }
   }
 
+  /// Deactivate a learning path
+  static Future<void> deactivateLearningPath(String pathId) async {
+    try {
+      SupabaseService.checkAuthentication();
+      final userId = SupabaseService.currentUser!.id;
+
+      // Update the is_active field to false for this specific path
+      await SupabaseService.client
+          .from('learning_paths')
+          .update({'is_active': false})
+          .eq('id', pathId)
+          .eq('user_id', userId);
+    } catch (e) {
+      debugPrint('Error deactivating learning path: $e');
+      rethrow;
+    }
+  }
+
   /// Create or update a learning path module
   static Future<LearningPathModule> saveModule(
       LearningPathModule module) async {

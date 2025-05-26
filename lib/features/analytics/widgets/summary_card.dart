@@ -155,10 +155,9 @@ class SummaryCard extends StatelessWidget {
           'Correct Answers',
           '${analytics.totalCorrectAnswers}',
           PhosphorIconsFill.check,
-          additionalInfo:
-              analytics.totalQuestionsAttempted > 0
-                  ? '${(analytics.totalCorrectAnswers / analytics.totalQuestionsAttempted * 100).toStringAsFixed(1)}% accuracy'
-                  : null,
+          additionalInfo: analytics.totalQuestionsAttempted > 0
+              ? '${(analytics.totalCorrectAnswers / analytics.totalQuestionsAttempted * 100).toStringAsFixed(1)}% accuracy'
+              : null,
         ),
       ],
     );

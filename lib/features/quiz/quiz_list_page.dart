@@ -1,6 +1,7 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:deltamind/core/theme/app_theme.dart';
+import 'package:deltamind/features/dashboard/profile_avatar.dart';
 import 'package:deltamind/features/quiz/quiz_controller.dart';
 import 'package:deltamind/features/quiz/quiz_history_tab.dart';
 import 'package:deltamind/services/quiz_service.dart';
@@ -554,6 +555,8 @@ class _QuizListPageState extends ConsumerState<QuizListPage>
           unselectedLabelColor: AppColors.textSecondary,
         ),
         actions: [
+          // Profile avatar
+          const ProfileAvatar(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _isLoading

@@ -1,5 +1,6 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
+import 'package:deltamind/features/dashboard/profile_avatar.dart';
 import 'package:deltamind/models/flashcard.dart';
 import 'package:deltamind/services/flashcard_service.dart';
 import 'package:flutter/material.dart';
@@ -166,6 +167,8 @@ class _FlashcardsListPageState extends State<FlashcardsListPage> {
       appBar: AppBar(
         title: const Text('Flashcards'),
         actions: [
+          // Profile avatar
+          const ProfileAvatar(),
           IconButton(
             icon: const Icon(PhosphorIconsFill.plusCircle),
             onPressed: () => context.push(AppRoutes.createFlashcardDeck),

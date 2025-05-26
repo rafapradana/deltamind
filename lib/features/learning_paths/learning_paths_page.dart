@@ -4,7 +4,6 @@ import 'package:deltamind/services/learning_path_service.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:deltamind/features/learning_paths/generate_path_dialog.dart';
-import 'package:deltamind/features/learning_paths/learning_path_detail_page.dart';
 import 'package:deltamind/features/learning_paths/learning_path_progress_widget.dart';
 import 'package:deltamind/core/utils/formatters.dart';
 import 'package:go_router/go_router.dart';
@@ -142,6 +141,33 @@ class _LearningPathsPageState extends State<LearningPathsPage>
   /// Handle tapping on a learning path
   void _onPathTap(LearningPath path) {
     context.push('/learning-paths/${path.id}');
+  }
+
+  /// Toggle a learning path's active status
+  Future<void> _togglePathActive(LearningPath path, bool value) async {
+    if (value == path.isActive) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (value) {
+        // Activate this path (and deactivate others)
+        await LearningPathService.setActiveLearningPath(path.id);
+      } else {
+        // Deactivate this path
+        await LearningPathService.deactivateLearningPath(path.id);
+      }
+
+      // Reload learning paths to refresh the UI
+      await _loadLearningPaths();
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to update learning path status: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   /// Continue active learning path

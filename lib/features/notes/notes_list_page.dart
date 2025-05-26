@@ -1,5 +1,6 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/core/theme/app_colors.dart';
+import 'package:deltamind/features/dashboard/profile_avatar.dart';
 import 'package:deltamind/features/notes/notes_controller.dart';
 import 'package:deltamind/features/notes/widgets/rich_text_editor.dart';
 import 'package:deltamind/models/note.dart';
@@ -55,6 +56,8 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
       appBar: AppBar(
         title: const Text('Notes'),
         actions: [
+          // Profile avatar
+          const ProfileAvatar(),
           // Toggle grid/list view
           IconButton(
             icon: Icon(

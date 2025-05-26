@@ -1,6 +1,5 @@
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../services/analytics_service.dart';
 
@@ -73,10 +72,9 @@ class _ActivityCalendarState extends State<ActivityCalendar> {
         decoration: BoxDecoration(
           color: _getColorForCount(count),
           borderRadius: BorderRadius.circular(4),
-          border:
-              isSelected
-                  ? Border.all(color: AppColors.secondary, width: 2)
-                  : null,
+          border: isSelected
+              ? Border.all(color: AppColors.secondary, width: 2)
+              : null,
         ),
       ),
     );
@@ -131,59 +129,59 @@ class _ActivityCalendarState extends State<ActivityCalendar> {
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Last 30 Days Quiz Activity',
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 140,
-                      child: GridView.count(
-                        crossAxisCount: 6,
-                        mainAxisSpacing: 4,
-                        crossAxisSpacing: 4,
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        children: _buildCalendarDays(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_hasSelection) ...[
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Selected Date: $_selectedDate',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                        'Last 30 Days Quiz Activity',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 140,
+                        child: GridView.count(
+                          crossAxisCount: 6,
+                          mainAxisSpacing: 4,
+                          crossAxisSpacing: 4,
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          children: _buildCalendarDays(),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$_selectedCount ${_selectedCount == 1 ? "quiz" : "quizzes"} completed',
-                        style: theme.textTheme.bodyMedium,
+                      const SizedBox(height: 12),
+                      if (_hasSelection) ...[
+                        Text(
+                          'Selected Date: $_selectedDate',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$_selectedCount ${_selectedCount == 1 ? "quiz" : "quizzes"} completed',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _buildLegendItem('0', Colors.grey.withOpacity(0.2)),
+                          const SizedBox(width: 8),
+                          _buildLegendItem(
+                            '1-2',
+                            AppColors.primary.withOpacity(0.3),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildLegendItem(
+                            '3-4',
+                            AppColors.primary.withOpacity(0.6),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildLegendItem('5+', AppColors.primary),
+                        ],
                       ),
                     ],
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        _buildLegendItem('0', Colors.grey.withOpacity(0.2)),
-                        const SizedBox(width: 8),
-                        _buildLegendItem(
-                          '1-2',
-                          AppColors.primary.withOpacity(0.3),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildLegendItem(
-                          '3-4',
-                          AppColors.primary.withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildLegendItem('5+', AppColors.primary),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
           ],
         ),
       ),

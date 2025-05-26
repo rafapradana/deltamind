@@ -4,7 +4,6 @@ import 'package:deltamind/features/auth/auth_controller.dart';
 import 'package:deltamind/features/dashboard/profile_avatar.dart';
 import 'package:deltamind/features/gamification/gamification_controller.dart';
 import 'package:deltamind/features/gamification/widgets/dashboard_streak_summary.dart';
-import 'package:deltamind/features/learning_paths/learning_paths_page.dart';
 import 'package:deltamind/features/search/search_bar_widget.dart';
 import 'package:deltamind/models/learning_path.dart';
 import 'package:deltamind/services/learning_path_service.dart';

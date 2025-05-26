@@ -1,6 +1,5 @@
 import 'package:deltamind/core/routing/app_router.dart';
 import 'package:deltamind/features/auth/auth_controller.dart';
-import 'package:deltamind/features/auth/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

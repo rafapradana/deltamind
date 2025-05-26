@@ -1,5 +1,4 @@
 import 'package:deltamind/services/analytics_service.dart';
-import 'package:deltamind/services/streak_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,15 +24,14 @@ class AnalyticsState {
     this.recentPerformance = const [],
     this.totalQuizzesCreated = 0,
     this.totalQuizzesCompleted = 0,
-  }) : overallAnalytics =
-           overallAnalytics ??
-           QuizAnalytics(
-             userId: 'unknown',
-             totalAttempts: 0,
-             totalCorrectAnswers: 0,
-             totalQuestionsAttempted: 0,
-             averageScore: 0,
-           );
+  }) : overallAnalytics = overallAnalytics ??
+            QuizAnalytics(
+              userId: 'unknown',
+              totalAttempts: 0,
+              totalCorrectAnswers: 0,
+              totalQuestionsAttempted: 0,
+              averageScore: 0,
+            );
 
   /// Creates a copy of the state with specified fields updated
   AnalyticsState copyWith({
@@ -194,5 +192,5 @@ class AnalyticsController extends StateNotifier<AnalyticsState> {
 /// Provider for analytics state
 final analyticsControllerProvider =
     StateNotifierProvider<AnalyticsController, AnalyticsState>((ref) {
-      return AnalyticsController();
-    });
+  return AnalyticsController();
+});
