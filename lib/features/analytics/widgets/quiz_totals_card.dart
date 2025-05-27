@@ -1,5 +1,4 @@
 import 'package:deltamind/core/theme/app_colors.dart';
-import 'package:deltamind/services/analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -19,8 +18,7 @@ class QuizTotalsCard extends StatefulWidget {
 }
 
 class _QuizTotalsCardState extends State<QuizTotalsCard> {
-  bool _isLoading = true;
-  double _averageScore = 0;
+  // No additional data to load
 
   @override
   void initState() {
@@ -28,25 +26,9 @@ class _QuizTotalsCardState extends State<QuizTotalsCard> {
     _loadAdditionalData();
   }
 
+  // No longer need to load additional data
   Future<void> _loadAdditionalData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Load average score
-      final overallAnalytics = await AnalyticsService.getOverallQuizAnalytics();
-
-      setState(() {
-        _averageScore = overallAnalytics.averageScore;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('Error loading additional analytics data: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    // This method is kept as a placeholder for potential future data loading
   }
 
   @override
@@ -112,23 +94,7 @@ class _QuizTotalsCardState extends State<QuizTotalsCard> {
               ],
             ),
 
-            const SizedBox(height: 16),
-
-            // Average Score row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTotalItem(
-                    context,
-                    'Average Score',
-                    _isLoading ? '...' : '${_averageScore.toStringAsFixed(1)}%',
-                    PhosphorIconsFill.chartBar,
-                    Colors.orange.shade700,
-                    isLoading: _isLoading,
-                  ),
-                ),
-              ],
-            ),
+            // Average Score row removed per user request
           ],
         ),
       ),
