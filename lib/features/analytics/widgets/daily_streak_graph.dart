@@ -1,7 +1,7 @@
 import 'package:deltamind/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class DailyStreakGraph extends StatefulWidget {
   final Map<String, dynamic> streakData;
@@ -14,10 +14,6 @@ class DailyStreakGraph extends StatefulWidget {
 }
 
 class _DailyStreakGraphState extends State<DailyStreakGraph> {
-  List<Color> gradientColors = [
-    AppColors.primary,
-    AppColors.primary.withAlpha(128),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -97,19 +93,18 @@ class _DailyStreakGraphState extends State<DailyStreakGraph> {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child:
-                  streakHistory.isEmpty
-                      ? Center(
-                        child: Text(
-                          'No streak data available',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      )
-                      : _buildLineChart(streakHistory),
-            ),
+            streakHistory.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'No streak data available',
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  )
+                : _buildCalendarView(streakHistory),
             if (widget.streakData['longest_streak'] != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -141,126 +136,98 @@ class _DailyStreakGraphState extends State<DailyStreakGraph> {
     );
   }
 
-  Widget _buildLineChart(List<Map<String, dynamic>> streakHistory) {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: 1,
-          getDrawingHorizontalLine: (value) {
-            return FlLine(
-              color: AppColors.divider.withAlpha(76),
-              strokeWidth: 1,
-            );
-          },
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: 1,
-              getTitlesWidget:
-                  (double value, TitleMeta meta) =>
-                      _bottomTitleWidgets(value, meta, streakHistory),
+  Widget _buildCalendarView(List<Map<String, dynamic>> streakHistory) {
+    // Group days into rows (3 rows of 5 days each)
+    List<List<Map<String, dynamic>>> rows = [];
+    
+    for (int i = 0; i < 3; i++) {
+      int startIndex = i * 5;
+      int endIndex = startIndex + 5;
+      if (endIndex > streakHistory.length) endIndex = streakHistory.length;
+      
+      if (startIndex < streakHistory.length) {
+        rows.add(streakHistory.sublist(startIndex, endIndex));
+      }
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Table(
+        // Use a table layout which handles distribution automatically
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: rows.map((rowData) {
+          return TableRow(
+            children: rowData.map((data) {
+              final DateTime date = DateTime.parse(data['date']);
+              final bool hasStreak = data['streak'] > 0;
+              
+              return _buildDayItem(
+                date: date,
+                hasStreak: hasStreak,
+              );
+            }).toList(),
+          );
+        }).toList(),
+      ),
+    );
+  }
+  
+  Widget _buildDayItem({required DateTime date, required bool hasStreak}) {
+    final String dayLabel = DateFormat('E').format(date).substring(0, 1);
+    final String dateLabel = date.day.toString();
+    final bool isToday = _isToday(date);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Important: use minimum space needed
+        children: [
+          // Day of week (Mon, Tue, etc.)
+          Text(
+            dayLabel,
+            style: TextStyle(
+              fontSize: 10, // Smaller font
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 1,
-              getTitlesWidget: _leftTitleWidgets,
-              reservedSize: 42,
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        minX: 0,
-        maxX: streakHistory.length.toDouble() - 1,
-        minY: 0,
-        maxY: _getMaxY(streakHistory),
-        lineBarsData: [
-          LineChartBarData(
-            spots: _createSpots(streakHistory),
-            isCurved: true,
-            gradient: LinearGradient(colors: gradientColors),
-            barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: true),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                colors:
-                    gradientColors.map((color) => color.withAlpha(76)).toList(),
+          const SizedBox(height: 2),
+          
+          // Date with circle background for today
+          Container(
+            width: 24,
+            height: 24,
+            decoration: isToday ? BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ) : null,
+            child: Center(
+              child: Text(
+                dateLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                  color: isToday ? AppColors.primary : AppColors.textPrimary,
+                ),
               ),
             ),
+          ),
+          const SizedBox(height: 2),
+          
+          // Fire icon (blue for streak, grey for no streak)
+          Icon(
+            PhosphorIconsFill.fire,
+            color: hasStreak ? AppColors.primary : Colors.grey.shade400,
+            size: 20, // Smaller icon
           ),
         ],
       ),
     );
   }
-
-  double _getMaxY(List<Map<String, dynamic>> streakHistory) {
-    if (streakHistory.isEmpty) return 5;
-    double maxStreak = 0;
-    for (var data in streakHistory) {
-      final streak = data['streak'] as double;
-      if (streak > maxStreak) maxStreak = streak;
-    }
-    return maxStreak + 1;
-  }
-
-  Widget _bottomTitleWidgets(
-    double value,
-    TitleMeta meta,
-    List<Map<String, dynamic>> streakHistory,
-  ) {
-    if (value < 0 || value >= streakHistory.length) {
-      return const SizedBox.shrink();
-    }
-
-    final DateTime date = DateTime.parse(streakHistory[value.toInt()]['date']);
-    final String text = DateFormat('MM/dd').format(date);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _leftTitleWidgets(double value, TitleMeta meta) {
-    return Text(
-      value.toInt().toString(),
-      style: TextStyle(
-        fontSize: 12,
-        color: AppColors.textSecondary,
-        fontWeight: FontWeight.bold,
-      ),
-      textAlign: TextAlign.left,
-    );
-  }
-
-  List<FlSpot> _createSpots(List<Map<String, dynamic>> streakHistory) {
-    return List.generate(streakHistory.length, (index) {
-      final data = streakHistory[index];
-      final streak = data['streak'] as double;
-      return FlSpot(index.toDouble(), streak);
-    });
+  
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
   }
 
   // Generate a simulated streak history based on the current streak
@@ -268,26 +235,18 @@ class _DailyStreakGraphState extends State<DailyStreakGraph> {
     final List<Map<String, dynamic>> history = [];
     final today = DateTime.now();
 
-    // If streak is 0, show empty graph
-    if (currentStreak == 0) {
-      return history;
-    }
-
-    // Generate the last 7 days or the current streak length, whichever is greater
-    final daysToShow = currentStreak > 7 ? currentStreak : 7;
-
-    // Start with a value of 1 (day 1 of streak)
-    double streakValue = 1;
+    // Show the past 15 days for the 5x3 grid
+    final daysToShow = 15;
 
     for (int i = daysToShow - 1; i >= 0; i--) {
       final date = today.subtract(Duration(days: i));
-
-      // If we're within the streak days, increment the streak value
+      
+      // If we're within the streak days, mark as active
       if (i < currentStreak) {
-        history.add({'date': date.toIso8601String(), 'streak': streakValue});
-        streakValue++;
+        // Day has an active streak
+        history.add({'date': date.toIso8601String(), 'streak': 1});
       } else {
-        // For days before the streak started, show 0
+        // Day doesn't have an active streak
         history.add({'date': date.toIso8601String(), 'streak': 0});
       }
     }
