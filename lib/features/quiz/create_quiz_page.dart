@@ -62,24 +62,35 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
         final fileName = file.name;
         final fileExt = fileName.split('.').last.toLowerCase();
 
+        // Read file bytes - this works for both web and mobile
+        final Uint8List bytes = await file.readAsBytes();
+        
+        if (bytes.length > maxFileSize) {
+          setState(() {
+            _errorMessage = 'File is too large. Maximum size is 5MB.';
+          });
+          return;
+        }
+
         setState(() {
+          // Set both sets of variables to ensure compatibility
+          _fileName = fileName;
           _selectedFileName = fileName;
           _selectedFileType = fileExt;
-
-          // Handle file differently based on platform
-          if (kIsWeb) {
-            // For web, store bytes
-            file.readAsBytes().then((bytes) {
-              setState(() {
-                _webFileBytes = bytes;
-              });
-            });
-            _selectedFile = null;
-          } else {
-            // For mobile platforms, create File object from path
+          _fileBytes = bytes;
+          _webFileBytes = bytes;
+          
+          // For mobile platforms, also create File object from path
+          if (!kIsWeb) {
+            _filePath = file.path;
             _selectedFile = File(file.path);
-            _webFileBytes = null;
+          } else {
+            _filePath = null;
+            _selectedFile = null;
           }
+
+          // Clear any previous error
+          _errorMessage = null;
 
           // Default title from filename without extension
           if (_titleController.text.isEmpty) {
@@ -89,7 +100,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error picking file: $e';
+        _errorMessage = 'Error picking file: ${e.toString()}';
       });
     }
   }
@@ -117,7 +128,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
       return;
     }
 
-    if (_contentController.text.trim().isEmpty && _fileBytes == null) {
+    if (_contentController.text.trim().isEmpty && _fileBytes == null && _webFileBytes == null) {
       setState(() {
         _errorMessage = 'Please enter some content or upload a file';
       });
@@ -131,8 +142,11 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
 
     try {
       // Process file if available
-      if (_fileBytes != null && _fileName != null) {
-        final String fileExtension = _fileName!.split('.').last.toLowerCase();
+      if ((_fileBytes != null || _webFileBytes != null) && (_fileName != null || _selectedFileName != null)) {
+        // Ensure we're using the available file data
+        final Uint8List fileData = _fileBytes ?? _webFileBytes!;
+        final String fileName = _fileName ?? _selectedFileName!;
+        final String fileExtension = fileName.split('.').last.toLowerCase();
 
         // Update loading state with file processing info
         setState(() {
@@ -143,7 +157,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
         if (fileExtension == 'pdf') {
           try {
             // Load PDF document from bytes (works on all platforms)
-            final PdfDocument document = PdfDocument(inputBytes: _fileBytes);
+            final PdfDocument document = PdfDocument(inputBytes: fileData);
             final PdfTextExtractor extractor = PdfTextExtractor(document);
 
             // Extract text from all pages
@@ -179,7 +193,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
         } else if (fileExtension == 'txt') {
           try {
             // Use file bytes for consistent behavior across platforms
-            final fileContent = utf8.decode(_fileBytes!);
+            final fileContent = utf8.decode(fileData);
             setState(() {
               _contentController.text = fileContent;
             });
@@ -208,11 +222,11 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
 
           final quiz = await quizController.generateQuizFromFile(
             title: title,
-            description: 'Generated quiz based on ${_fileName!}',
+            description: 'Generated quiz based on $fileName',
             quizType: _selectedQuizType,
             difficulty: _selectedDifficulty,
-            fileBytes: _fileBytes!,
-            fileName: _fileName!,
+            fileBytes: fileData,
+            fileName: fileName,
             questionCount: _questionCount,
           );
 
@@ -597,7 +611,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
                         color: AppColors.primary,
                       ),
                       label: Text(
-                        _fileName != null ? 'Change File' : 'Upload File',
+                        (_fileName != null || _selectedFileName != null) ? 'Change File' : 'Upload File',
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
@@ -611,7 +625,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
                         ),
                       ),
                     ),
-                    if (_fileName != null) ...[
+                    if (_fileName != null || _selectedFileName != null) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -630,7 +644,7 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                _fileName!,
+                                _fileName ?? _selectedFileName ?? '',
                                 style: AppTheme.smallText,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -645,6 +659,10 @@ class _CreateQuizPageState extends ConsumerState<CreateQuizPage> {
                                   _filePath = null;
                                   _fileName = null;
                                   _fileBytes = null;
+                                  _selectedFileName = null;
+                                  _selectedFileType = null;
+                                  _selectedFile = null;
+                                  _webFileBytes = null;
                                 });
                               },
                               iconSize: 16,
