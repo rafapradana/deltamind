@@ -91,6 +91,12 @@ class _RegisterPageState extends State<RegisterPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // App Logo/Name
+                Image.asset(
+                  'assets/logos/deltamind-black.png',
+                  height: 60,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 16),
                 Text(
                   AppConstants.appName,
                   style: AppTheme.headingLarge,
