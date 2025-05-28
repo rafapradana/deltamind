@@ -312,14 +312,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: OutlinedButton(
                         onPressed: () => context.push(AppRoutes.learningPaths),
-                        icon: Icon(
-                          PhosphorIconsFill.roadHorizon,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                        label: const Text('Learning Paths'),
+                        child: const Text('Learning Paths'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,

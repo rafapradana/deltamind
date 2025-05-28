@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "com.example.deltamind"
     compileSdk = flutter.compileSdkVersion
+    // Using the NDK version required by the Flutter plugins
     ndkVersion = "27.0.12077973"
 
     compileOptions {

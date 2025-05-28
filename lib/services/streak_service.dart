@@ -432,34 +432,49 @@ class StreakService {
   }
 
   /// Get all daily quests for the current user
-  static Future<List<DailyQuest>> getDailyQuests() async {
+  static Future<List<DailyQuest>> getDailyQuests({bool forceRefresh = false}) async {
     try {
       final userId = SupabaseService.currentUser?.id;
       if (userId == null) {
         throw Exception('User not authenticated');
       }
 
+      // If force refresh is requested, call reset_daily_quests first
+      if (forceRefresh) {
+        try {
+          await SupabaseService.client.rpc('reset_daily_quests');
+          debugPrint('Successfully refreshed daily quests state');
+        } catch (e) {
+          debugPrint('Warning: Error refreshing daily quests state: $e');
+        }
+      }
+      
       try {
         // Call generate_daily_quests RPC to ensure user has quests
+        // This will create new quests if none exist or if they're expired
         await SupabaseService.client.rpc('generate_daily_quests', params: {
           'user_id_param': userId,
         });
+        debugPrint('Successfully generated/checked daily quests');
       } catch (e) {
         // Log but continue - the user might still have existing quests
         debugPrint('Warning: Could not generate daily quests: $e');
       }
 
-      // Get all active quests for the user
+      // Get all active quests for the user with more detailed error logging
       final response = await SupabaseService.client
           .from('daily_quests')
           .select()
           .eq('user_id', userId)
           .gt('reset_at', DateTime.now().toIso8601String())
           .order('quest_type');
-
-      return response
+      
+      final quests = response
           .map<DailyQuest>((json) => DailyQuest.fromJson(json))
           .toList();
+          
+      debugPrint('Loaded ${quests.length} daily quests');
+      return quests;
     } catch (e) {
       debugPrint('Error getting daily quests: $e');
       // Return empty list instead of throwing to prevent UI crashes

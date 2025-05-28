@@ -2,6 +2,7 @@ import 'package:deltamind/models/daily_quest.dart';
 import 'package:deltamind/services/streak_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// State class for streak and gamification data
 class GamificationState {
@@ -73,6 +74,59 @@ class GamificationController extends StateNotifier<GamificationState> {
     }
   }
 
+  /// Load gamification data when app is cold started
+  void loadOnAppStart() {
+    // Check if daily quests need to be refreshed
+    _checkAndRefreshDailyQuests();
+    
+    // Load all gamification data
+    Future.microtask(() => loadGamificationData());
+  }
+  
+  /// Check if daily quests need to be refreshed based on last refresh time
+  Future<void> _checkAndRefreshDailyQuests() async {
+    try {
+      // Get the last refresh time from secure storage
+      final lastRefreshStr = await const FlutterSecureStorage().read(key: 'last_daily_quest_refresh');
+      final now = DateTime.now().toUtc();
+      bool needsRefresh = true;
+      
+      if (lastRefreshStr != null) {
+        try {
+          final lastRefresh = DateTime.parse(lastRefreshStr);
+          final todayMidnight = DateTime.utc(
+            now.year, 
+            now.month, 
+            now.day, 
+            0, 0, 0
+          );
+          
+          // If last refresh was after today's midnight UTC, no need to refresh
+          if (lastRefresh.isAfter(todayMidnight)) {
+            needsRefresh = false;
+            debugPrint('Daily quests already refreshed today at ${lastRefresh.toIso8601String()}');
+          }
+        } catch (e) {
+          debugPrint('Error parsing last refresh time: $e');
+        }
+      }
+      
+      if (needsRefresh) {
+        // Force refresh the daily quests
+        await refreshDailyQuests(forceRefresh: true);
+        
+        // Save the current time as the last refresh time
+        await const FlutterSecureStorage().write(
+          key: 'last_daily_quest_refresh', 
+          value: now.toIso8601String()
+        );
+        debugPrint('Daily quests refreshed at ${now.toIso8601String()}');
+      }
+    } catch (e) {
+      debugPrint('Error checking daily quests refresh: $e');
+    }
+  }
+
   /// Load all gamification data for the current user
   Future<void> loadGamificationData() async {
     // Set loading state
@@ -117,9 +171,9 @@ class GamificationController extends StateNotifier<GamificationState> {
   }
 
   /// Load only daily quests data (for refreshing quest progress)
-  Future<void> refreshDailyQuests() async {
+  Future<void> refreshDailyQuests({bool forceRefresh = false}) async {
     try {
-      final dailyQuests = await StreakService.getDailyQuests();
+      final dailyQuests = await StreakService.getDailyQuests(forceRefresh: forceRefresh);
       state = state.copyWith(dailyQuests: dailyQuests);
     } catch (e) {
       debugPrint('Error refreshing daily quests: $e');

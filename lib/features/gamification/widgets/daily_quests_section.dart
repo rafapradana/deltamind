@@ -5,11 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-class DailyQuestsSection extends ConsumerWidget {
+class DailyQuestsSection extends ConsumerStatefulWidget {
   const DailyQuestsSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DailyQuestsSection> createState() => _DailyQuestsSectionState();
+}
+
+class _DailyQuestsSectionState extends ConsumerState<DailyQuestsSection> {
+  @override
+  Widget build(BuildContext context) {
     final gamificationState = ref.watch(gamificationControllerProvider);
     final dailyQuests = gamificationState.dailyQuests;
     final theme = Theme.of(context);
@@ -48,31 +53,69 @@ class DailyQuestsSection extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'No quests available right now',
+                'Generating new quests...',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Come back tomorrow for new quests',
+                'Tap below to generate daily quests',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
-                  // Reload gamification data to try loading quests again
-                  ref
+                onPressed: () async {
+                  // Show loading indicator
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Generating daily quests...'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  
+                  // Force refresh the daily quests
+                  await ref
                       .read(gamificationControllerProvider.notifier)
-                      .loadGamificationData();
+                      .refreshDailyQuests(forceRefresh: true);
+                      
+                  // Check if quests were generated
+                  if (ref.read(gamificationControllerProvider).dailyQuests.isEmpty) {
+                    // Try one more time with full data reload
+                    await ref
+                        .read(gamificationControllerProvider.notifier)
+                        .loadGamificationData();
+                        
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            ref.read(gamificationControllerProvider).dailyQuests.isEmpty
+                                ? 'Could not generate quests. Try again later.'
+                                : 'Daily quests generated!',
+                          ),
+                          backgroundColor: ref.read(gamificationControllerProvider).dailyQuests.isEmpty
+                              ? Colors.red
+                              : Colors.green,
+                        ),
+                      );
+                    }
+                  } else if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Daily quests generated!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0056D2),
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Refresh'),
+                child: const Text('Generate Quests'),
               ),
             ],
           ),
